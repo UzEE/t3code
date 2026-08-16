@@ -91,6 +91,10 @@ a shortcut.
 
 ## Commands with special behavior
 
+`navigation.back` and `navigation.forward` move through previously visited threads
+and pages with `mod+[` and `mod+]`. They do not navigate the app while the terminal
+or embedded Preview owns keyboard focus.
+
 `thread.stop` interrupts the running turn in the focused thread. It has no default
 shortcut; assign one in **Settings → Keybindings**.
 
