@@ -11,7 +11,13 @@ import { useLocation, useNavigate } from "@tanstack/react-router";
 
 import { isElectron } from "../env";
 import { getLocalStorageItem, removeLocalStorageItem } from "../hooks/useLocalStorage";
-import { resolveShortcutCommand, shortcutLabelForCommand } from "../keybindings";
+import {
+  navigationHistoryDirectionFromCommand,
+  resolveShortcutCommand,
+  shortcutLabelForCommand,
+} from "../keybindings";
+import { isPreviewFocused } from "../lib/previewFocus";
+import { isTerminalFocused } from "../lib/terminalFocus";
 import { cn, isMacPlatform } from "../lib/utils";
 import { primaryServerKeybindingsAtom } from "../state/server";
 import { useEnvironmentIdentificationMode, useLegacySidebarEnabled } from "../hooks/useSettings";
@@ -67,6 +73,46 @@ function readInitialThreadSidebarWidth(): number {
     console.error("Could not read persisted thread sidebar width.", error);
     return resolveInitialThreadSidebarWidth(null, window.innerWidth);
   }
+}
+
+function AppNavigationShortcuts() {
+  const keybindings = useAtomValue(primaryServerKeybindingsAtom);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.repeat || event.isComposing) return;
+      if (
+        event.target instanceof HTMLElement &&
+        event.target.closest("[data-keybinding-capture]")
+      ) {
+        return;
+      }
+
+      const terminalFocus = isTerminalFocused();
+      const previewFocus = isPreviewFocused();
+      if (terminalFocus || previewFocus) return;
+
+      const direction = navigationHistoryDirectionFromCommand(
+        resolveShortcutCommand(event, keybindings, {
+          context: { terminalFocus, previewFocus },
+        }),
+      );
+      if (!direction) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      if (direction === "back") {
+        window.history.back();
+        return;
+      }
+      window.history.forward();
+    };
+
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [keybindings]);
+
+  return null;
 }
 
 function SidebarControl() {
@@ -255,6 +301,7 @@ export function AppSidebarLayout({ children }: { children: ReactNode }) {
           <SidebarRail onDoubleClick={resetSidebarWidth} />
         </Sidebar>
         {children}
+        <AppNavigationShortcuts />
         <SidebarControl />
       </SidebarProvider>
     </PanelAnimationSuppressionProvider>

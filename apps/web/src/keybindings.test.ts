@@ -23,6 +23,7 @@ import {
   isTerminalSplitShortcut,
   isTerminalSplitVerticalShortcut,
   isTerminalToggleShortcut,
+  navigationHistoryDirectionFromCommand,
   resolveShortcutCommand,
   shouldShowThreadJumpHintsForModifiers,
   shortcutLabelForCommand,
@@ -88,6 +89,22 @@ function compile(bindings: TestBinding[]): ResolvedKeybindingsConfig {
 
 const DEFAULT_BINDINGS = compile([
   { shortcut: modShortcut("b"), command: "sidebar.toggle" },
+  {
+    shortcut: modShortcut("["),
+    command: "navigation.back",
+    whenAst: whenAnd(
+      whenNot(whenIdentifier("terminalFocus")),
+      whenNot(whenIdentifier("previewFocus")),
+    ),
+  },
+  {
+    shortcut: modShortcut("]"),
+    command: "navigation.forward",
+    whenAst: whenAnd(
+      whenNot(whenIdentifier("terminalFocus")),
+      whenNot(whenIdentifier("previewFocus")),
+    ),
+  },
   { shortcut: modShortcut("j"), command: "terminal.toggle" },
   { shortcut: modShortcut("b", { altKey: true }), command: "rightPanel.toggle" },
   {
@@ -481,6 +498,15 @@ describe("shortcutLabelForCommand", () => {
   });
 });
 
+describe("route history navigation helpers", () => {
+  it("maps route-history commands to browser history directions", () => {
+    assert.strictEqual(navigationHistoryDirectionFromCommand("navigation.back"), "back");
+    assert.strictEqual(navigationHistoryDirectionFromCommand("navigation.forward"), "forward");
+    assert.isNull(navigationHistoryDirectionFromCommand("thread.previous"));
+    assert.isNull(navigationHistoryDirectionFromCommand(null));
+  });
+});
+
 describe("thread navigation helpers", () => {
   it("maps jump commands to visible thread indices", () => {
     assert.strictEqual(threadJumpCommandForIndex(0), "thread.jump.1");
@@ -827,6 +853,22 @@ describe("resolveShortcutCommand", () => {
   it("matches bracket shortcuts using the physical key code", () => {
     assert.strictEqual(
       resolveShortcutCommand(
+        event({ key: "å", code: "BracketLeft", metaKey: true }),
+        DEFAULT_BINDINGS,
+        { platform: "MacIntel" },
+      ),
+      "navigation.back",
+    );
+    assert.strictEqual(
+      resolveShortcutCommand(
+        event({ key: "]", code: "BracketRight", ctrlKey: true }),
+        DEFAULT_BINDINGS,
+        { platform: "Linux" },
+      ),
+      "navigation.forward",
+    );
+    assert.strictEqual(
+      resolveShortcutCommand(
         event({ key: "{", code: "BracketLeft", metaKey: true, shiftKey: true }),
         DEFAULT_BINDINGS,
         {
@@ -880,6 +922,21 @@ describe("resolveShortcutCommand", () => {
         platform: "MacIntel",
       }),
       "diff.toggle",
+    );
+  });
+
+  it("suppresses route history defaults while terminal or Preview owns focus", () => {
+    assert.isNull(
+      resolveShortcutCommand(event({ key: "[", metaKey: true }), DEFAULT_BINDINGS, {
+        platform: "MacIntel",
+        context: { terminalFocus: true },
+      }),
+    );
+    assert.isNull(
+      resolveShortcutCommand(event({ key: "]", ctrlKey: true }), DEFAULT_BINDINGS, {
+        platform: "Linux",
+        context: { previewFocus: true },
+      }),
     );
   });
 

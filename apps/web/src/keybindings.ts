@@ -292,6 +292,14 @@ export function shortcutLabelForCommand(
   return shortcut ? formatShortcutLabel(shortcut, platform) : null;
 }
 
+export function navigationHistoryDirectionFromCommand(
+  command: string | null,
+): "back" | "forward" | null {
+  if (command === "navigation.back") return "back";
+  if (command === "navigation.forward") return "forward";
+  return null;
+}
+
 export function threadJumpCommandForIndex(index: number): ThreadJumpKeybindingCommand | null {
   return THREAD_JUMP_KEYBINDING_COMMANDS[index] ?? null;
 }
