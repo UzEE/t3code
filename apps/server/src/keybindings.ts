@@ -104,19 +104,20 @@ function isSameKeybindingRule(left: KeybindingRule, right: KeybindingRule): bool
   );
 }
 
-function keybindingShortcutContext(rule: KeybindingRule): string | null {
+function keybindingShortcut(rule: KeybindingRule): string | null {
   const parsed = parseKeybindingShortcut(rule.key);
   if (!parsed) return null;
-  const encoded = encodeShortcut(parsed);
-  if (!encoded) return null;
-  return `${encoded}\u0000${rule.when ?? ""}`;
+  return encodeShortcut(parsed);
 }
 
-function hasSameShortcutContext(left: KeybindingRule, right: KeybindingRule): boolean {
-  const leftContext = keybindingShortcutContext(left);
-  const rightContext = keybindingShortcutContext(right);
-  if (!leftContext || !rightContext) return false;
-  return leftContext === rightContext;
+function hasConflictingShortcutContext(
+  existingRule: KeybindingRule,
+  defaultRule: KeybindingRule,
+): boolean {
+  const existingShortcut = keybindingShortcut(existingRule);
+  const defaultShortcut = keybindingShortcut(defaultRule);
+  if (!existingShortcut || !defaultShortcut || existingShortcut !== defaultShortcut) return false;
+  return existingRule.when === undefined || existingRule.when === defaultRule.when;
 }
 
 function keybindingRuleFromUpsertInput(input: ServerUpsertKeybindingInput): KeybindingRule {
@@ -483,7 +484,7 @@ const make = Effect.gen(function* () {
           continue;
         }
         const conflictingEntry = customConfig.find((entry) =>
-          hasSameShortcutContext(entry, defaultRule),
+          hasConflictingShortcutContext(entry, defaultRule),
         );
         if (conflictingEntry) {
           shortcutConflictWarnings.push({

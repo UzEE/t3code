@@ -293,6 +293,7 @@ it.layer(NodeServices.layer)("keybindings", (it) => {
       const { keybindingsConfigPath } = yield* ServerConfig.ServerConfig;
       yield* writeKeybindingsConfig(keybindingsConfigPath, [
         { key: "mod+j", command: "script.custom-action.run" },
+        { key: "mod+[", command: "script.run-tests.run" },
       ]);
 
       yield* Effect.gen(function* () {
@@ -302,7 +303,13 @@ it.layer(NodeServices.layer)("keybindings", (it) => {
 
       const persisted = yield* readKeybindingsConfig(keybindingsConfigPath);
       assert.isFalse(persisted.some((entry) => entry.command === "terminal.toggle"));
+      assert.isFalse(persisted.some((entry) => entry.command === "navigation.back"));
       assert.isTrue(persisted.some((entry) => entry.command === "script.custom-action.run"));
+      assert.isTrue(
+        persisted.some(
+          (entry) => entry.key === "mod+[" && entry.command === "script.run-tests.run",
+        ),
+      );
 
       assert.isTrue(
         messages.some((message) =>
