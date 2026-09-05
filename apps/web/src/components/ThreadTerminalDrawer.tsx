@@ -282,9 +282,13 @@ export function shouldHandleTerminalExit(
   current: TerminalSessionState["status"],
   synchronized: TerminalSessionState["status"],
   alreadyHandled: boolean,
+  version: number,
 ): boolean {
   return (
-    (current === "closed" || current === "exited") && current !== synchronized && !alreadyHandled
+    version > 0 &&
+    (current === "closed" || current === "exited") &&
+    current !== synchronized &&
+    !alreadyHandled
   );
 }
 
@@ -414,11 +418,13 @@ export function TerminalViewport({
   const outputCursorRef = useRef<TerminalOutputCursor>(INITIAL_TERMINAL_OUTPUT_CURSOR);
   const synchronizedStatusRef = useRef<TerminalSessionState["status"]>("closed");
   const synchronizeTerminalStatus = useEffectEvent(
-    (terminal: GhosttyTerminalSurface, status: TerminalSessionState["status"]) => {
+    (terminal: GhosttyTerminalSurface, status: TerminalSessionState["status"], version: number) => {
       const synchronized = synchronizedStatusRef.current;
-      if (status === "running") {
+      if (version > 0 && status === "running") {
         hasHandledExitRef.current = false;
-      } else if (shouldHandleTerminalExit(status, synchronized, hasHandledExitRef.current)) {
+      } else if (
+        shouldHandleTerminalExit(status, synchronized, hasHandledExitRef.current, version)
+      ) {
         hasHandledExitRef.current = true;
         writeSystemMessage(terminal, status === "closed" ? "Terminal closed" : "Process exited");
         window.setTimeout(() => {
@@ -427,7 +433,7 @@ export function TerminalViewport({
           }
         }, 0);
       }
-      synchronizedStatusRef.current = status;
+      if (version > 0) synchronizedStatusRef.current = status;
     },
   );
   const terminalVersion = terminalSession.version;
@@ -538,7 +544,7 @@ export function TerminalViewport({
       // (A session that is "closed" at mount is indistinguishable from one that
       // never started, so only "exited" triggers the message — as with xterm.)
       synchronizedStatusRef.current = "closed";
-      synchronizeTerminalStatus(terminal, latestSession.status);
+      synchronizeTerminalStatus(terminal, latestSession.status, latestSession.version);
       // Startup may finish after the user has returned to the composer.
       if (
         hasTerminalWriteAccess() &&
@@ -932,7 +938,7 @@ export function TerminalViewport({
     }
 
     const previous = previousSessionRef.current;
-    synchronizeTerminalStatus(terminal, current.status);
+    synchronizeTerminalStatus(terminal, current.status, current.version);
     if (current.version === previous.version && current.output === previous.output) {
       return;
     }
