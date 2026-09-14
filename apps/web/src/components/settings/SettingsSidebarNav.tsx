@@ -171,11 +171,11 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
       void navigate({
         to,
         hash: "",
-        replace: true,
+        replace: pathname === to,
         hashScrollIntoView: false,
       });
     },
-    [isMobile, navigate, setOpenMobile],
+    [isMobile, navigate, pathname, setOpenMobile],
   );
   const clearSearch = useCallback(() => {
     setQuery("");
@@ -195,7 +195,7 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
       void navigate({
         to: item.to,
         hash: targetId,
-        replace: true,
+        replace: pathname === item.to,
         hashScrollIntoView: false,
         state: { settingsTargetHighlight: true },
       });

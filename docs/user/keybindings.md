@@ -95,6 +95,8 @@ a shortcut.
 and pages with `mod+[` and `mod+]`. They do not navigate the app while the terminal
 or embedded Preview owns keyboard focus.
 
+Back and Forward also move between Settings pages. To leave Settings and return to the page you opened it from, press `Escape` or use the Settings **Back** button.
+
 `thread.stop` interrupts the running turn in the focused thread. It has no default
 shortcut; assign one in **Settings → Keybindings**.
 

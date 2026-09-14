@@ -1,11 +1,12 @@
 import { createRouter, RouterHistory } from "@tanstack/react-router";
 
 import { routeTree } from "./routeTree.gen";
+import { withSettingsHistory } from "./settingsHistory";
 
 export function getRouter(history: RouterHistory) {
   return createRouter({
     routeTree,
-    history,
+    history: withSettingsHistory(history),
     context: {},
     // Route components are split chunks (autoCodeSplitting in vite.config);
     // fetching them on hover/focus intent hides the load from the first
