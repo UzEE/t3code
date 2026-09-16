@@ -1496,7 +1496,15 @@ export const makeCodexSessionRuntime = (
       yield* Ref.get(collabChildMetadataRef).pipe(
         Effect.flatMap((metadata) =>
           metadata.get(agentThreadId)?.closed
-            ? Effect.succeed(undefined)
+            ? Ref.update(collabChildMetadataRef, (current) => {
+                const previous = current.get(agentThreadId);
+                if (!previous) {
+                  return current;
+                }
+                const next = new Map(current);
+                next.set(agentThreadId, { ...previous, lookupStarted: false });
+                return next;
+              }).pipe(Effect.as(undefined))
             : client.raw
                 .request("thread/resume", { threadId: agentThreadId, excludeTurns: true })
                 .pipe(Effect.flatMap(decodeCodexChildResumeMetadata), Effect.timeout("5 seconds")),

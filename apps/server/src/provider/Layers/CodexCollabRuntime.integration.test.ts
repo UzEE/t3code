@@ -347,12 +347,23 @@ describe("CodexSessionRuntime collab integration", () => {
     }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
   );
 
-  it.effect("does not retry metadata for a child that closed after the first failure", () =>
+  it.effect("skips metadata retries while closed and resumes lookup when the child reopens", () =>
     Effect.gen(function* () {
       const script = {
         rootThreadId: ROOT,
         recordRequests: true,
-        notifications: [capturedStartedActivity()],
+        notificationsByTurn: [
+          [capturedStartedActivity()],
+          [
+            {
+              method: "turn/started",
+              params: {
+                threadId: CHILD_A,
+                turn: { id: "child-reopened-turn", status: "inProgress", items: [] },
+              },
+            },
+          ],
+        ],
         childResumeSnapshots: {
           [CHILD_A]: {
             failuresBeforeSuccess: 1,
@@ -389,6 +400,20 @@ describe("CodexSessionRuntime collab integration", () => {
       yield* Fiber.join(closed);
       yield* TestClock.adjust("1 second");
       assert.equal(readRecordedRequests().length, 1);
+      const metadata = yield* runtime.events.pipe(
+        Stream.filter((event) => event.method === "collabAgent/metadataUpdated"),
+        Stream.take(1),
+        Stream.runCollect,
+        Effect.forkScoped,
+      );
+      yield* runtime.sendTurn({ input: "reopen the child" });
+      const events = Array.from(yield* Fiber.join(metadata));
+      assert.deepInclude(events[0]?.payload, {
+        agentThreadId: CHILD_A,
+        model: "gpt-6-astra",
+        effort: "medium",
+      });
+      assert.equal(readRecordedRequests().length, 2);
       yield* runtime.close;
     }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
   );
