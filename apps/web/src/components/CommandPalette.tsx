@@ -71,6 +71,7 @@ import {
   MessageSquareIcon,
   MonitorIcon,
   MoonIcon,
+  PanelLeftIcon,
   PaletteIcon,
   RotateCcwIcon,
   SettingsIcon,
@@ -104,7 +105,7 @@ import {
   copyPromptLink,
   promptLinkRepositoryOf,
 } from "./promptLinks/copyPromptLink";
-import { useClientSettings } from "../hooks/useSettings";
+import { useClientSettings, useUpdateClientSettings } from "../hooks/useSettings";
 import { useTheme } from "../hooks/useTheme";
 import { useCustomThemes } from "../hooks/useCustomThemes";
 import { useEnvironmentThemeDefinitions } from "../hooks/useEnvironmentTheme";
@@ -610,6 +611,7 @@ function OpenCommandPaletteDialog(props: {
     setHighlightedItemValue(null);
   }
   const clientSettings = useClientSettings();
+  const updateClientSettings = useUpdateClientSettings();
   const createProject = useAtomCommand(projectEnvironment.create, {
     reportFailure: false,
   });
@@ -2155,6 +2157,20 @@ function OpenCommandPaletteDialog(props: {
         theme,
         themeHalves,
         initialAppearance: resolvedTheme,
+      });
+    },
+  });
+
+  actionItems.push({
+    kind: "action",
+    value: "action:project-rail",
+    searchTerms: ["project rail", "projects", "sidebar", "icons", "toggle"],
+    title: clientSettings.sidebarProjectRailEnabled ? "Hide project rail" : "Show project rail",
+    icon: <PanelLeftIcon className={ITEM_ICON_CLASS} />,
+    shortcutCommand: "sidebar.toggleProjectRail",
+    run: async () => {
+      await updateClientSettings({
+        sidebarProjectRailEnabled: !clientSettings.sidebarProjectRailEnabled,
       });
     },
   });
