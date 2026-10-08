@@ -54,6 +54,7 @@ import {
 } from "@t3tools/client-runtime/environment";
 import {
   AuthOrchestrationOperateScope,
+  PROJECT_JUMP_KEYBINDING_COMMANDS,
   type EnvironmentMachineKind,
   type ScopedThreadRef,
   type ThreadId,
@@ -109,6 +110,8 @@ import { isElectron } from "../env";
 import {
   resolveShortcutCommand,
   shortcutLabelForCommand,
+  shortcutKeyLabelForCommand,
+  shouldShowProjectJumpHintsForModifiers,
   shouldShowThreadJumpHintsForModifiers,
   threadJumpCommandForIndex,
   threadJumpIndexFromCommand,
@@ -277,7 +280,11 @@ import {
   resolveSidebarThreadStatusBadge,
   SidebarThreadStatusIcon,
 } from "./sidebar/SidebarThreadStatusIcon";
-import { NO_PROJECT_SCOPE_KEY, orderProjectRailEntries } from "./sidebar/projectRail.logic";
+import {
+  NO_PROJECT_SCOPE_KEY,
+  orderProjectRailEntries,
+  resolveProjectRailShortcut,
+} from "./sidebar/projectRail.logic";
 import { SidebarHeaderIconButton, SidebarThreadHeader } from "./sidebar/SidebarThreadHeader";
 import { Menu, MenuItem, MenuPopup, MenuSeparator, MenuShortcut, MenuTrigger } from "./ui/menu";
 import { Tooltip, TooltipPopup, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
@@ -2677,6 +2684,10 @@ export default function Sidebar() {
       ),
     [projectGroups, projectOrder, scratchProjectGroupKeys],
   );
+  const projectRailEntryKeys = useMemo(
+    () => projectRailEntries.map((entry) => entry.key),
+    [projectRailEntries],
+  );
   // A persisted scope whose project is gone falls back to all projects, but
   // only after every catalog environment has a live project snapshot. Cached
   // or disconnected environments cannot establish that the project is gone.
@@ -4922,6 +4933,18 @@ export default function Sidebar() {
         navigateToThread(scopeThreadRef(targetThread.environmentId, targetThread.id));
         return true;
       };
+      // Project shortcuts act like clicking the rail icon, rail shown or not.
+      const projectTarget = resolveProjectRailShortcut({
+        command,
+        entryKeys: projectRailEntryKeys,
+        scopeKey: projectScopeKey,
+      });
+      if (projectTarget) {
+        event.preventDefault();
+        event.stopPropagation();
+        setProjectScopeKey(projectTarget.scopeKey);
+        return;
+      }
       const traversalDirection = threadTraversalDirectionFromCommand(command);
       if (traversalDirection !== null) {
         navigateToThreadKey(
@@ -4943,8 +4966,11 @@ export default function Sidebar() {
     keybindings,
     navigateToThread,
     orderedThreadKeys,
+    projectRailEntryKeys,
+    projectScopeKey,
     routeTerminalOpen,
     routeThreadKey,
+    setProjectScopeKey,
     threadByKey,
   ]);
 
@@ -4970,6 +4996,37 @@ export default function Sidebar() {
   useEffect(() => {
     updateThreadJumpHintsVisibility(shouldShowJumpHintsNow);
   }, [shouldShowJumpHintsNow, updateThreadJumpHintsVisibility]);
+  // Rail hints: same delay and modifier rule as the thread hints, shown in
+  // place of the rail's attention badges.
+  const {
+    showThreadJumpHints: showProjectJumpHints,
+    updateThreadJumpHintsVisibility: updateProjectJumpHintsVisibility,
+  } = useThreadJumpHintVisibility();
+  const shouldShowProjectJumpHintsNow =
+    projectRailEnabled &&
+    shouldShowProjectJumpHintsForModifiers(shortcutModifiers, keybindings, {
+      platform: navigator.platform,
+      context: {
+        terminalFocus: terminalFocused,
+        terminalOpen: routeTerminalOpen,
+        modelPickerOpen: isModelPickerOpen(),
+        isWeb: !isElectron,
+        isDesktop: isElectron,
+      },
+    });
+  useEffect(() => {
+    updateProjectJumpHintsVisibility(shouldShowProjectJumpHintsNow);
+  }, [shouldShowProjectJumpHintsNow, updateProjectJumpHintsVisibility]);
+  const projectJumpLabels = useMemo(() => {
+    if (!showProjectJumpHints) return null;
+    const byScopeKey = new Map<string, string>();
+    projectRailEntryKeys.forEach((scopeKey, index) => {
+      const command = PROJECT_JUMP_KEYBINDING_COMMANDS[index];
+      const label = command ? shortcutKeyLabelForCommand(keybindings, command) : null;
+      if (label) byScopeKey.set(scopeKey, label);
+    });
+    return { all: shortcutKeyLabelForCommand(keybindings, "project.showAll"), byScopeKey };
+  }, [keybindings, projectRailEntryKeys, showProjectJumpHints]);
 
   // New thread defaults to the project you're in (active thread's project,
   // falling back to the top project) — same resolution the command palette
@@ -5026,6 +5083,7 @@ export default function Sidebar() {
             onSelectScope={setProjectScopeKey}
             onAddProject={openAddProjectCommandPalette}
             onOpenProjectSettings={openProjectSettingsFromRail}
+            jumpLabels={projectJumpLabels}
           />
         </ProjectRailReveal>
         <div className="flex min-w-0 flex-1 flex-col">

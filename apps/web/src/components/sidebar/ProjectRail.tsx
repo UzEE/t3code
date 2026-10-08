@@ -51,6 +51,19 @@ function RailBadge({ count }: { count: number }) {
   );
 }
 
+// Shown in the badge's place while the jump modifiers are held, styled like
+// the thread list's jump hints.
+function RailJumpHint({ label }: { label: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="pointer-events-none absolute -right-1 -bottom-1 z-10 inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-border/80 bg-background/95 px-1.5 font-mono text-3xs font-medium tracking-tight text-foreground shadow-sm"
+    >
+      {label}
+    </span>
+  );
+}
+
 function attentionLabel(label: string, count: number): string {
   if (count === 0) return label;
   return `${label}, ${count} ${count === 1 ? "thread needs" : "threads need"} attention`;
@@ -64,6 +77,8 @@ function RailButton(props: {
   attentionCount?: number;
   onClick: () => void;
   onContextMenu?: ((event: MouseEvent<HTMLButtonElement>) => void) | undefined;
+  /** Keyboard shortcut shown instead of the badge while its modifiers are held. */
+  jumpLabel?: string | null | undefined;
   /** Replaces the plain label tooltip, e.g. with a hover card popup. */
   popup?: ReactNode;
   tooltipDisabled?: boolean;
@@ -98,7 +113,11 @@ function RailButton(props: {
               )}
             >
               {props.children}
-              <RailBadge count={attentionCount} />
+              {props.jumpLabel ? (
+                <RailJumpHint label={props.jumpLabel} />
+              ) : (
+                <RailBadge count={attentionCount} />
+              )}
             </button>
           }
         />
@@ -119,6 +138,7 @@ const RailEntry = memo(function RailEntry(props: {
   project: SidebarProjectSnapshot | null;
   selected: boolean;
   attentionCount: number;
+  jumpLabel: string | null;
   onSelectScope: (scopeKey: string | null) => void;
   onOpenProjectSettings: ProjectRailProps["onOpenProjectSettings"];
 }) {
@@ -146,6 +166,7 @@ const RailEntry = memo(function RailEntry(props: {
         label={project ? project.displayName : "No project"}
         selected={props.selected}
         attentionCount={props.attentionCount}
+        jumpLabel={props.jumpLabel}
         onClick={handleClick}
         onContextMenu={project ? handleContextMenu : undefined}
         tooltipDisabled={isDragging}
@@ -184,6 +205,11 @@ export interface ProjectRailProps {
     event: MouseEvent<HTMLButtonElement>,
     project: SidebarProjectSnapshot,
   ) => void;
+  /** Shortcut labels while the jump modifiers are held, else null. */
+  jumpLabels: {
+    readonly all: string | null;
+    readonly byScopeKey: ReadonlyMap<string, string>;
+  } | null;
 }
 
 /**
@@ -194,6 +220,7 @@ export interface ProjectRailProps {
 export const ProjectRail = memo(function ProjectRail(props: ProjectRailProps) {
   const {
     entries,
+    jumpLabels,
     noProjectMembers,
     now,
     onAddProject,
@@ -259,6 +286,7 @@ export const ProjectRail = memo(function ProjectRail(props: ProjectRailProps) {
           label="All projects"
           selected={scopeKey === null}
           attentionCount={attention.total}
+          jumpLabel={jumpLabels?.all}
           onClick={() => onSelectScope(null)}
         >
           <LayersIcon className="size-4.5" />
@@ -283,6 +311,7 @@ export const ProjectRail = memo(function ProjectRail(props: ProjectRailProps) {
                     project={entry.kind === "project" ? entry.group : null}
                     selected={scopeKey === entry.key}
                     attentionCount={attention.byScopeKey.get(entry.key) ?? 0}
+                    jumpLabel={jumpLabels?.byScopeKey.get(entry.key) ?? null}
                     onSelectScope={onSelectScope}
                     onOpenProjectSettings={onOpenProjectSettings}
                   />

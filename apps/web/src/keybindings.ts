@@ -3,6 +3,7 @@ import {
   type KeybindingShortcut,
   type KeybindingWhenNode,
   MODEL_PICKER_JUMP_KEYBINDING_COMMANDS,
+  PROJECT_JUMP_KEYBINDING_COMMANDS,
   type ResolvedKeybindingsConfig,
   THREAD_JUMP_KEYBINDING_COMMANDS,
   type ModelPickerJumpKeybindingCommand,
@@ -238,6 +239,18 @@ export function shortcutLabelForCommand(
   return shortcut ? formatShortcutLabel(shortcut, platform) : null;
 }
 
+/**
+ * Just the key of a command's shortcut ("1", not "Ctrl+Alt+1"), for hints
+ * shown while the user is already holding the modifiers.
+ */
+export function shortcutKeyLabelForCommand(
+  keybindings: ResolvedKeybindingsConfig,
+  command: KeybindingCommand,
+): string | null {
+  const shortcut = findEffectiveShortcutForCommand(keybindings, command);
+  return shortcut ? formatShortcutKeyLabel(shortcut.key) : null;
+}
+
 export function threadJumpCommandForIndex(index: number): ThreadJumpKeybindingCommand | null {
   return THREAD_JUMP_KEYBINDING_COMMANDS[index] ?? null;
 }
@@ -260,6 +273,34 @@ export function shouldShowThreadJumpHintsForModifiers(
   keybindings: ResolvedKeybindingsConfig,
   options?: ShortcutMatchOptions,
 ): boolean {
+  return shouldShowJumpHintsForModifiers(
+    THREAD_JUMP_KEYBINDING_COMMANDS,
+    modifiers,
+    keybindings,
+    options,
+  );
+}
+
+/** Like the thread hints, for the project rail's ⌘⌥1…9 and ⌘⌥0. */
+export function shouldShowProjectJumpHintsForModifiers(
+  modifiers: ShortcutModifierStateLike,
+  keybindings: ResolvedKeybindingsConfig,
+  options?: ShortcutMatchOptions,
+): boolean {
+  return shouldShowJumpHintsForModifiers(
+    [...PROJECT_JUMP_KEYBINDING_COMMANDS, "project.showAll"],
+    modifiers,
+    keybindings,
+    options,
+  );
+}
+
+function shouldShowJumpHintsForModifiers(
+  commands: readonly KeybindingCommand[],
+  modifiers: ShortcutModifierStateLike,
+  keybindings: ResolvedKeybindingsConfig,
+  options?: ShortcutMatchOptions,
+): boolean {
   // The embedded terminal owns keystrokes while it has focus: the Ghostty
   // surface encodes the keydown and can write the pressed key into the shell
   // before our window-level shortcut handling ever runs, regardless of any
@@ -272,7 +313,7 @@ export function shouldShowThreadJumpHintsForModifiers(
 
   const platform = resolvePlatform(options);
 
-  for (const command of THREAD_JUMP_KEYBINDING_COMMANDS) {
+  for (const command of commands) {
     const shortcut = findEffectiveShortcutForCommand(keybindings, command, options);
     if (!shortcut) continue;
     if (matchesKeybindingShortcutModifiers(modifiers, shortcut, platform)) {
