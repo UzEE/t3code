@@ -59,6 +59,7 @@ import {
   MessageSquareDashedIcon,
   LinkIcon,
   MessageSquareIcon,
+  PanelLeftIcon,
   PaletteIcon,
   RotateCcwIcon,
   SettingsIcon,
@@ -90,7 +91,7 @@ import {
   copyPromptLink,
   promptLinkRepositoryOf,
 } from "./promptLinks/copyPromptLink";
-import { useClientSettings } from "../hooks/useSettings";
+import { useClientSettings, useUpdateClientSettings } from "../hooks/useSettings";
 import { useStableCallback } from "../hooks/useStableCallback";
 import { useTheme } from "../hooks/useTheme";
 import { readLocalApi } from "../localApi";
@@ -495,6 +496,8 @@ function OpenCommandPaletteDialog(props: {
     setHighlightedItemValue(null);
   }
   const clientSettings = useClientSettings(selectCommandPaletteClientSettings);
+  const projectRailEnabled = useClientSettings((s) => s.sidebarProjectRailEnabled);
+  const updateClientSettings = useUpdateClientSettings();
   const createProject = useAtomCommand(projectEnvironment.create, {
     reportFailure: false,
   });
@@ -1531,6 +1534,20 @@ function OpenCommandPaletteDialog(props: {
   }, [openIntent, projectThreadItemCount]);
 
   actionItems.push(themeEditorItem);
+
+  actionItems.push({
+    kind: "action",
+    value: "action:project-rail",
+    searchTerms: ["project rail", "projects", "sidebar", "icons", "toggle"],
+    title: projectRailEnabled ? "Hide project rail" : "Show project rail",
+    icon: <PanelLeftIcon className={ITEM_ICON_CLASS} />,
+    shortcutCommand: "sidebar.toggleProjectRail",
+    run: async () => {
+      await updateClientSettings({
+        sidebarProjectRailEnabled: !projectRailEnabled,
+      });
+    },
+  });
 
   if (
     environments.some(
