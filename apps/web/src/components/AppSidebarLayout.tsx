@@ -10,7 +10,11 @@ import {
 import { useLocation, useNavigate, useParams } from "@tanstack/react-router";
 
 import { isElectron } from "../env";
-import { getLocalStorageItem, removeLocalStorageItem } from "../hooks/useLocalStorage";
+import {
+  getLocalStorageItem,
+  removeLocalStorageItem,
+  setLocalStorageItem,
+} from "../hooks/useLocalStorage";
 import {
   isRichTextBoldShortcut,
   resolveShortcutCommand,
@@ -25,7 +29,12 @@ import { selectThreadTerminalUiState, useTerminalUiStateStore } from "../termina
 import { resolveThreadRouteRef } from "../threadRoutes";
 import { cn, isMacPlatform } from "../lib/utils";
 import { primaryServerKeybindingsAtom } from "../state/server";
-import { useEnvironmentIdentificationMode, useLegacySidebarEnabled } from "../hooks/useSettings";
+import {
+  useClientSettings,
+  useEnvironmentIdentificationMode,
+  useLegacySidebarEnabled,
+  useUpdateClientSettings,
+} from "../hooks/useSettings";
 import {
   PanelAnimationSuppressionProvider,
   usePanelAnimationSettings,
@@ -37,6 +46,7 @@ import ThreadSidebar from "./Sidebar";
 import { SettingsSidebarNav } from "./settings/SettingsSidebarNav";
 import { SidebarBrandWidthProbe, SidebarChromeHeader } from "./sidebar/SidebarChrome";
 import { MainAppLocationTracker } from "./sidebar/mainAppLocation";
+import { PROJECT_RAIL_WIDTH } from "./sidebar/projectRail.logic";
 import { useSidebarStageBackdropVariant } from "./SidebarStageBackdrop";
 import { useProjects } from "../state/entities";
 import {
@@ -165,6 +175,35 @@ function SidebarControl() {
   );
 }
 
+// Shows or hides the project rail from anywhere, like the sidebar toggle.
+function ProjectRailShortcut() {
+  const keybindings = useAtomValue(primaryServerKeybindingsAtom);
+  const projectRailEnabled = useClientSettings((settings) => settings.sidebarProjectRailEnabled);
+  const updateClientSettings = useUpdateClientSettings();
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      if (
+        event.target instanceof HTMLElement &&
+        event.target.closest("[data-keybinding-capture]")
+      ) {
+        return;
+      }
+      if (resolveShortcutCommand(event, keybindings) !== "sidebar.toggleProjectRail") return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      void updateClientSettings({ sidebarProjectRailEnabled: !projectRailEnabled });
+    };
+
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [keybindings, projectRailEnabled, updateClientSettings]);
+
+  return null;
+}
+
 // Moves through the app's route history like a browser's back/forward buttons.
 function NavigationHistoryShortcuts() {
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
@@ -237,6 +276,11 @@ export function AppSidebarLayout({ children }: { children: ReactNode }) {
   const routePanelAnimationsActive = panelAnimationsActive && !panelAnimationsSuppressed;
   const isOnSettings = pathname === "/settings" || pathname.startsWith("/settings/");
   const isMacosDesktop = isElectron && isMacPlatform(navigator.platform);
+  const projectRailEnabled = useClientSettings((settings) => settings.sidebarProjectRailEnabled);
+  // The rail renders inside the thread sidebar, so the sidebar grows by its
+  // width while the thread list keeps the width the user chose. Settings
+  // reserves the same width so opening it never moves the sidebar edge.
+  const railWidth = projectRailEnabled && !legacySidebarEnabled ? PROJECT_RAIL_WIDTH : 0;
   const [sidebarWidth, setSidebarWidth] = useState(readInitialThreadSidebarWidth);
   // Subscribed rather than read once: the clamp must track live window size,
   // and a clamped drag ends with an unchanged width, which skips the re-render
@@ -244,7 +288,10 @@ export function AppSidebarLayout({ children }: { children: ReactNode }) {
   const viewportWidth = useSyncExternalStore(subscribeToViewportWidth, readViewportWidth);
   const [brandWidth, setBrandWidth] = useState(0);
   const sidebarMinimumWidth = resolveThreadSidebarMinimumWidth(brandWidth);
-  const sidebarMaximumWidth = resolveThreadSidebarMaximumWidth(viewportWidth, sidebarMinimumWidth);
+  const sidebarMaximumWidth = resolveThreadSidebarMaximumWidth(
+    viewportWidth - railWidth,
+    sidebarMinimumWidth,
+  );
   const resetSidebarWidth = () => {
     try {
       removeLocalStorageItem(THREAD_SIDEBAR_WIDTH_STORAGE_KEY);
@@ -260,10 +307,23 @@ export function AppSidebarLayout({ children }: { children: ReactNode }) {
       : false;
   });
   const sidebarProviderStyle = {
-    "--sidebar-width": `${clampThreadSidebarWidth(sidebarWidth, sidebarMinimumWidth, sidebarMaximumWidth)}px`,
+    "--sidebar-width": `${clampThreadSidebarWidth(sidebarWidth, sidebarMinimumWidth, sidebarMaximumWidth) + railWidth}px`,
     "--panel-animation-duration": `${panelAnimationDurationMs}ms`,
     ...(isMacosDesktop && !isWindowFullscreen
       ? { "--workspace-controls-left": MACOS_TRAFFIC_LIGHTS_LEFT_INSET }
+      : railWidth > 0
+        ? // Centers the sidebar toggle over the rail's icons, net of the rail's
+          // right border and the toggle's own 1px margin.
+          {
+            "--workspace-controls-left": `calc(env(safe-area-inset-left) + (${railWidth}px - 1px - var(--workspace-titlebar-control-size)) / 2 - 1px)`,
+          }
+        : {}),
+    ...(railWidth > 0
+      ? {
+          // Lines the brand up with the search icon and thread rows (the content
+          // inset plus a row's own padding), unless the toggle needs that space.
+          "--sidebar-brand-left": `max(var(--workspace-titlebar-content-left), calc(${railWidth}px + var(--sidebar-content-inset) + 0.5rem))`,
+        }
       : {}),
   } as CSSProperties;
 
@@ -320,14 +380,27 @@ export function AppSidebarLayout({ children }: { children: ReactNode }) {
           data-app-sidebar=""
           role="navigation"
           aria-label={isOnSettings ? "Settings" : "Threads"}
+          // Resize works on the whole sidebar, rail included, but the saved
+          // width is the thread list's alone so toggling the rail keeps it.
           resizable={{
-            maxWidth: sidebarMaximumWidth,
-            minWidth: sidebarMinimumWidth,
+            maxWidth: sidebarMaximumWidth + railWidth,
+            minWidth: sidebarMinimumWidth + railWidth,
             shouldAcceptWidth: ({ currentWidth, nextWidth, wrapper }) =>
               nextWidth <= currentWidth ||
               wrapper.clientWidth - nextWidth >= THREAD_MAIN_CONTENT_MIN_WIDTH,
-            storageKey: THREAD_SIDEBAR_WIDTH_STORAGE_KEY,
-            onResize: setSidebarWidth,
+            onResize: (width) => {
+              const threadListWidth = width - railWidth;
+              setSidebarWidth(threadListWidth);
+              try {
+                setLocalStorageItem(
+                  THREAD_SIDEBAR_WIDTH_STORAGE_KEY,
+                  threadListWidth,
+                  Schema.Finite,
+                );
+              } catch (error) {
+                console.error("Could not persist thread sidebar width.", error);
+              }
+            },
           }}
         >
           {isOnSettings ? (
@@ -345,6 +418,7 @@ export function AppSidebarLayout({ children }: { children: ReactNode }) {
         {children}
         <SidebarControl />
         <NavigationHistoryShortcuts />
+        <ProjectRailShortcut />
         <MainAppLocationTracker />
       </SidebarProvider>
     </PanelAnimationSuppressionProvider>

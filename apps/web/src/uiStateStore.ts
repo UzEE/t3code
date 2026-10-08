@@ -423,6 +423,17 @@ export function reorderProjects(
   };
 }
 
+export function setProjectOrder(state: UiState, projectOrder: readonly string[]): UiState {
+  const next = sanitizeStringArray(projectOrder);
+  if (
+    next.length === state.projectOrder.length &&
+    next.every((key, index) => key === state.projectOrder[index])
+  ) {
+    return state;
+  }
+  return { ...state, projectOrder: next };
+}
+
 interface UiStateStore extends UiState {
   markThreadVisited: (threadId: string, visitedAt: string) => void;
   markThreadUnread: (threadId: string, latestTurnCompletedAt: string | null | undefined) => void;
@@ -436,6 +447,7 @@ interface UiStateStore extends UiState {
     draggedProjectIds: readonly string[],
     targetProjectIds: readonly string[],
   ) => void;
+  setProjectOrder: (projectOrder: readonly string[]) => void;
 }
 
 export const useUiStateStore = create<UiStateStore>((set) => ({
@@ -457,6 +469,7 @@ export const useUiStateStore = create<UiStateStore>((set) => ({
     set((state) =>
       reorderProjects(state, currentProjectOrder, draggedProjectIds, targetProjectIds),
     ),
+  setProjectOrder: (projectOrder) => set((state) => setProjectOrder(state, projectOrder)),
 }));
 
 useUiStateStore.subscribe((state) => debouncedPersistState.maybeExecute(state));

@@ -29,6 +29,8 @@ export interface SidebarThreadHeaderProps {
   searchFieldRef?: RefObject<HTMLDivElement | null>;
   /** Without projects there is nothing to scope, so those controls stay out. */
   hasProjects: boolean;
+  /** The project rail already offers scoping and Add project, so the header drops them. */
+  projectRailVisible: boolean;
   /** The project scope combobox, rendered as the first icon of the group. */
   projectScope: ReactNode;
   onNewProject: () => void;
@@ -52,6 +54,7 @@ export interface SidebarThreadHeaderProps {
 export function SidebarThreadHeader({
   searchFieldRef,
   hasProjects,
+  projectRailVisible,
   projectScope,
   onNewProject,
   onNewThread,
@@ -124,7 +127,7 @@ export function SidebarThreadHeader({
           hover states, and a background well reads far louder on themed
           palettes than on the base light and dark ones. */}
       <div className="flex shrink-0 items-center">
-        {hasProjects ? (
+        {hasProjects && !projectRailVisible ? (
           <>
             {projectScope}
             <SidebarHeaderIconButton label="Add project" onClick={onNewProject}>
