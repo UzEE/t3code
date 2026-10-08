@@ -34,6 +34,27 @@ export const MODEL_PICKER_JUMP_KEYBINDING_COMMANDS = [
 export type ModelPickerJumpKeybindingCommand =
   (typeof MODEL_PICKER_JUMP_KEYBINDING_COMMANDS)[number];
 
+export const PROJECT_JUMP_KEYBINDING_COMMANDS = [
+  "project.jump.1",
+  "project.jump.2",
+  "project.jump.3",
+  "project.jump.4",
+  "project.jump.5",
+  "project.jump.6",
+  "project.jump.7",
+  "project.jump.8",
+  "project.jump.9",
+] as const;
+export type ProjectJumpKeybindingCommand = (typeof PROJECT_JUMP_KEYBINDING_COMMANDS)[number];
+
+const PROJECT_KEYBINDING_COMMANDS = [
+  "project.showAll",
+  "project.previous",
+  "project.next",
+  ...PROJECT_JUMP_KEYBINDING_COMMANDS,
+] as const;
+export type ProjectKeybindingCommand = (typeof PROJECT_KEYBINDING_COMMANDS)[number];
+
 const THREAD_KEYBINDING_COMMANDS = [
   "thread.stop",
   "thread.steerQueuedMessage",
@@ -112,6 +133,7 @@ export const STATIC_KEYBINDING_COMMANDS = [
   "usage.period.quarter",
   ...MODEL_PICKER_KEYBINDING_COMMANDS,
   ...THREAD_KEYBINDING_COMMANDS,
+  ...PROJECT_KEYBINDING_COMMANDS,
 ] as const;
 
 export const SCRIPT_RUN_COMMAND_PATTERN = Schema.TemplateLiteral([
