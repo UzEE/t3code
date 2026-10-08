@@ -50,6 +50,7 @@ import {
 } from "@t3tools/client-runtime/environment";
 import {
   AuthOrchestrationOperateScope,
+  PROJECT_JUMP_KEYBINDING_COMMANDS,
   type ScopedThreadRef,
   type ThreadId,
 } from "@t3tools/contracts";
@@ -83,6 +84,8 @@ import { isElectron } from "../env";
 import {
   resolveShortcutCommand,
   shortcutLabelForCommand,
+  shortcutKeyLabelForCommand,
+  shouldShowProjectJumpHintsForModifiers,
   shouldShowThreadJumpHintsForModifiers,
   threadJumpCommandForIndex,
   threadJumpIndexFromCommand,
@@ -212,7 +215,11 @@ import {
 import { SidebarContent, SidebarGroup, useSidebar } from "./ui/sidebar";
 import { SidebarChromeFooter, SidebarChromeHeader } from "./sidebar/SidebarChrome";
 import { ProjectRail, ProjectRailReveal } from "./sidebar/ProjectRail";
-import { NO_PROJECT_SCOPE_KEY, orderProjectRailEntries } from "./sidebar/projectRail.logic";
+import {
+  NO_PROJECT_SCOPE_KEY,
+  orderProjectRailEntries,
+  resolveProjectRailShortcut,
+} from "./sidebar/projectRail.logic";
 import { SidebarHeaderIconButton, SidebarThreadHeader } from "./sidebar/SidebarThreadHeader";
 import { TooltipProvider } from "./ui/tooltip";
 import { composerDraftHasUserContent, DraftId, useComposerDraftStore } from "../composerDraftStore";
@@ -747,6 +754,7 @@ function useSidebarLookups() {
     projectGroups.filter((group) => !scratchProjectGroupKeys.has(group.projectKey)),
     projectOrder,
   );
+  const projectRailEntryKeys = projectRailEntries.map((entry) => entry.key);
   return {
     projects,
     serverConfigs,
@@ -761,6 +769,7 @@ function useSidebarLookups() {
     railScopeKeyByProjectRef,
     noProjectMembers,
     projectRailEntries,
+    projectRailEntryKeys,
   };
 }
 
@@ -814,6 +823,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     railScopeKeyByProjectRef,
     noProjectMembers,
     projectRailEntries,
+    projectRailEntryKeys,
   } = useSidebarLookups();
   const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
@@ -2695,6 +2705,18 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         navigateToThread(scopeThreadRef(targetThread.environmentId, targetThread.id));
         return true;
       };
+      // Project shortcuts act like clicking the rail icon, rail shown or not.
+      const projectTarget = resolveProjectRailShortcut({
+        command,
+        entryKeys: projectRailEntryKeys,
+        scopeKey: projectScopeKey,
+      });
+      if (projectTarget) {
+        event.preventDefault();
+        event.stopPropagation();
+        setProjectScopeKey(projectTarget.scopeKey);
+        return;
+      }
       const traversalDirection = threadTraversalDirectionFromCommand(command);
       if (traversalDirection !== null) {
         navigateToThreadKey(
@@ -2716,8 +2738,11 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     keybindings,
     navigateToThread,
     orderedThreadKeys,
+    projectRailEntryKeys,
+    projectScopeKey,
     routeRowThreadKey,
     routeTerminalOpen,
+    setProjectScopeKey,
     threadByKey,
   ]);
 
@@ -2738,6 +2763,39 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   useEffect(() => {
     updateThreadJumpHintsVisibility(shouldShowJumpHintsNow);
   }, [shouldShowJumpHintsNow, updateThreadJumpHintsVisibility]);
+  // Rail hints: same delay and modifier rule as the thread hints, shown in
+  // place of the rail's attention badges.
+  const {
+    showThreadJumpHints: showProjectJumpHints,
+    updateThreadJumpHintsVisibility: updateProjectJumpHintsVisibility,
+  } = useThreadJumpHintVisibility();
+  const shouldShowProjectJumpHintsNow =
+    projectRailEnabled &&
+    shouldShowProjectJumpHintsForModifiers(shortcutModifiers, keybindings, {
+      platform: navigator.platform,
+      context: {
+        terminalFocus: terminalFocused,
+        terminalOpen: routeTerminalOpen,
+        modelPickerOpen: isModelPickerOpen(),
+        isWeb: !isElectron,
+        isDesktop: isElectron,
+      },
+    });
+  useEffect(() => {
+    updateProjectJumpHintsVisibility(shouldShowProjectJumpHintsNow);
+  }, [shouldShowProjectJumpHintsNow, updateProjectJumpHintsVisibility]);
+  const projectJumpLabels = showProjectJumpHints
+    ? {
+        all: shortcutKeyLabelForCommand(keybindings, "project.showAll"),
+        byScopeKey: new Map(
+          projectRailEntryKeys.flatMap((scopeKey, index) => {
+            const command = PROJECT_JUMP_KEYBINDING_COMMANDS[index];
+            const label = command ? shortcutKeyLabelForCommand(keybindings, command) : null;
+            return label ? [[scopeKey, label] as const] : [];
+          }),
+        ),
+      }
+    : null;
 
   const handleNewThreadClick = (event?: ReactMouseEvent) => {
     if (shouldCreateNewThreadInCurrentProject(event?.shiftKey ?? false, projectGroups.length)) {
@@ -2776,6 +2834,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
             onSelectScope={setProjectScopeKey}
             onAddProject={openAddProjectCommandPalette}
             onOpenProjectSettings={openProjectSettingsFromRail}
+            jumpLabels={projectJumpLabels}
           />
         </ProjectRailReveal>
         <div className="flex min-w-0 flex-1 flex-col">

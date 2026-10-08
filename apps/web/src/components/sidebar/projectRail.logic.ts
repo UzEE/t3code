@@ -1,4 +1,8 @@
 import { effectiveSnoozed } from "@t3tools/client-runtime/state/thread-settled";
+import {
+  PROJECT_JUMP_KEYBINDING_COMMANDS,
+  type ProjectJumpKeybindingCommand,
+} from "@t3tools/contracts";
 
 import type { SidebarProjectSnapshot } from "../../sidebarProjectGrouping";
 import type { SidebarThreadSummary } from "../../types";
@@ -87,6 +91,34 @@ export function moveProjectRailEntry(
   const [moved] = next.splice(from, 1);
   next.splice(to, 0, moved!);
   return next.flatMap(entryOrderKeys);
+}
+
+/**
+ * Where a project shortcut goes, exactly as if its rail icon were clicked:
+ * `scopeKey` null is All projects. Null when there is nowhere to go: no icon
+ * at that position, or already at the top or bottom of the rail.
+ */
+export function resolveProjectRailShortcut(input: {
+  command: string | null;
+  /** Rail keys below the separator, in rail order. */
+  entryKeys: readonly string[];
+  scopeKey: string | null;
+}): { scopeKey: string | null } | null {
+  const { command, entryKeys } = input;
+  if (command === "project.showAll") return { scopeKey: null };
+  const jumpIndex = PROJECT_JUMP_KEYBINDING_COMMANDS.indexOf(
+    command as ProjectJumpKeybindingCommand,
+  );
+  if (jumpIndex !== -1) {
+    const target = entryKeys[jumpIndex];
+    return target === undefined ? null : { scopeKey: target };
+  }
+  if (command !== "project.previous" && command !== "project.next") return null;
+  // All projects sits above the list; a scope missing from the rail reads as All.
+  const position = input.scopeKey === null ? 0 : entryKeys.indexOf(input.scopeKey) + 1;
+  const next = position + (command === "project.next" ? 1 : -1);
+  if (next < 0 || next > entryKeys.length) return null;
+  return { scopeKey: next === 0 ? null : entryKeys[next - 1]! };
 }
 
 type RailThread = Pick<

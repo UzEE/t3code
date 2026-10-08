@@ -7,6 +7,7 @@ import {
   moveProjectRailEntry,
   NO_PROJECT_SCOPE_KEY,
   orderProjectRailEntries,
+  resolveProjectRailShortcut,
   selectProjectRailPreviewThreads,
 } from "./projectRail.logic";
 
@@ -42,6 +43,28 @@ describe("orderProjectRailEntries", () => {
       (entry) => entry.key,
     );
     expect(keys).toEqual(["alpha", "beta", NO_PROJECT_SCOPE_KEY, "gamma"]);
+  });
+});
+
+describe("resolveProjectRailShortcut", () => {
+  const entryKeys = [NO_PROJECT_SCOPE_KEY, "alpha", "beta"];
+  const go = (command: string, scopeKey: string | null) =>
+    resolveProjectRailShortcut({ command, entryKeys, scopeKey })?.scopeKey;
+
+  it("jumps to rail positions as shown, and to All projects", () => {
+    expect(go("project.jump.1", "beta")).toBe(NO_PROJECT_SCOPE_KEY);
+    expect(go("project.jump.3", null)).toBe("beta");
+    expect(go("project.jump.4", null)).toBeUndefined();
+    expect(go("project.showAll", "alpha")).toBeNull();
+  });
+
+  it("steps through All projects and the rail, stopping at the ends", () => {
+    expect(go("project.next", null)).toBe(NO_PROJECT_SCOPE_KEY);
+    expect(go("project.next", "alpha")).toBe("beta");
+    expect(go("project.next", "beta")).toBeUndefined();
+    expect(go("project.previous", NO_PROJECT_SCOPE_KEY)).toBeNull();
+    expect(go("project.previous", null)).toBeUndefined();
+    expect(go("thread.next", "alpha")).toBeUndefined();
   });
 });
 
