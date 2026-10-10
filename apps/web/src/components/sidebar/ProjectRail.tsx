@@ -106,7 +106,7 @@ function RailButton(props: {
               onClick={props.onClick}
               onContextMenu={props.onContextMenu}
               className={cn(
-                "relative flex size-9 cursor-pointer items-center justify-center rounded-xl text-sidebar-foreground/80 outline-hidden ring-ring transition-colors focus-visible:ring-2",
+                "relative flex size-9 cursor-pointer items-center justify-center rounded-xl text-sidebar-foreground/80 outline-hidden ring-ring transition-colors focus-visible:ring-2 focus-visible:ring-inset",
                 props.selected
                   ? "bg-sidebar-row-active text-sidebar-foreground shadow-xs/5"
                   : "bg-sidebar/70 hover:bg-sidebar-row-hover hover:text-sidebar-foreground dark:bg-sidebar-row-hover/60 dark:hover:bg-sidebar-row-hover",
