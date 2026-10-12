@@ -419,15 +419,14 @@ export function AppSidebarLayout({ children }: { children: ReactNode }) {
   const sidebarProviderStyle = {
     "--sidebar-width": `${clampThreadSidebarWidth(sidebarWidth, sidebarMinimumWidth, sidebarMaximumWidth) + railWidth}px`,
     "--panel-animation-duration": `${panelAnimationDurationMs}ms`,
-    ...(isMacosDesktop && !isWindowFullscreen
-      ? windowControlsInsetStyle
-      : railWidth > 0
-        ? // Centers the sidebar toggle over the rail's icons, net of the rail's
-          // right border and the toggle's own 1px margin.
-          {
-            "--workspace-controls-left": `calc(env(safe-area-inset-left) + (${railWidth}px - 1px - var(--workspace-titlebar-control-size)) / 2 - 1px)`,
-          }
-        : {}),
+    ...windowControlsInsetStyle,
+    ...(!(isMacosDesktop && !isWindowFullscreen) && railWidth > 0
+      ? // Centers the sidebar toggle over the rail's icons, net of the rail's
+        // right border and the toggle's own 1px margin.
+        {
+          "--workspace-controls-left": `calc(env(safe-area-inset-left) + (${railWidth}px - 1px - var(--workspace-titlebar-control-size)) / 2 - 1px)`,
+        }
+      : {}),
     ...(railWidth > 0
       ? {
           // Lines the brand up with the search icon and thread rows (the content
