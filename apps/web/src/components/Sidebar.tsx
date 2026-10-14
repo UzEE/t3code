@@ -2199,6 +2199,7 @@ const SidebarSearchResultRow = memo(function SidebarSearchResultRow(props: {
 
 export default function Sidebar() {
   const projects = useProjects();
+  const projectOrder = useUiStateStore((store) => store.projectOrder);
   const threads = useThreadShells();
   const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
