@@ -214,7 +214,7 @@ import {
 } from "./ui/combobox";
 import { SidebarContent, SidebarGroup, useSidebar } from "./ui/sidebar";
 import { SidebarChromeFooter, SidebarChromeHeader } from "./sidebar/SidebarChrome";
-import { ProjectRail, ProjectRailReveal } from "./sidebar/ProjectRail";
+import { ProjectRail, ProjectRailReveal, useSelectAddedRailProject } from "./sidebar/ProjectRail";
 import {
   NO_PROJECT_SCOPE_KEY,
   orderProjectRailEntries,
@@ -1055,6 +1055,15 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     scratchProjectGroupKeys,
     setPersistedProjectScopeKey,
   ]);
+  useSelectAddedRailProject({
+    enabled: projectRailEnabled,
+    snapshotsReady: allProjectSnapshotsReady && allProjectConfigsReady,
+    scopeKeyByProjectRef: railScopeKeyByProjectRef,
+    routeDraftProjectRef: routeDraftThread
+      ? `${routeDraftThread.environmentId}:${routeDraftThread.projectId}`
+      : null,
+    onSelectScope: setProjectScopeKey,
+  });
   const routeDraftIdForRows = routeTarget?.kind === "draft" ? routeTarget.draftId : null;
   const visibleDraftSessionCount = useComposerDraftStore((store) => {
     let count = 0;
