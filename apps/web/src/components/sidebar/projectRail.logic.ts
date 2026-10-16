@@ -2,6 +2,7 @@ import { effectiveSnoozed } from "@t3tools/client-runtime/state/thread-settled";
 import {
   PROJECT_JUMP_KEYBINDING_COMMANDS,
   type ProjectJumpKeybindingCommand,
+  type ScopedProjectRef,
 } from "@t3tools/contracts";
 
 import type { SidebarProjectSnapshot } from "../../sidebarProjectGrouping";
@@ -21,6 +22,36 @@ export const PROJECT_RAIL_WIDTH = 56;
  * Real scope keys are logical project keys, which never take this form.
  */
 export const NO_PROJECT_SCOPE_KEY = "t3:no-project";
+
+/**
+ * Where a new thread opens while the rail scopes the list to one project: that
+ * project, preferring its copy in the open thread's environment. Null keeps the
+ * default, the open thread's project, which already belongs to the scope.
+ */
+export function resolveRailNewThreadProjectRef(input: {
+  scopedGroup: Pick<SidebarProjectSnapshot, "environmentId" | "id" | "memberProjectRefs"> | null;
+  activeProjectRef: ScopedProjectRef | null;
+}): ScopedProjectRef | null {
+  const { activeProjectRef, scopedGroup } = input;
+  if (!scopedGroup) return null;
+  const members = scopedGroup.memberProjectRefs;
+  if (
+    activeProjectRef &&
+    members.some(
+      (member) =>
+        member.environmentId === activeProjectRef.environmentId &&
+        member.projectId === activeProjectRef.projectId,
+    )
+  ) {
+    return null;
+  }
+  return (
+    members.find((member) => member.environmentId === activeProjectRef?.environmentId) ?? {
+      environmentId: scopedGroup.environmentId,
+      projectId: scopedGroup.id,
+    }
+  );
+}
 
 type RailProjectGroup = Pick<SidebarProjectSnapshot, "projectKey" | "createdAt"> & {
   readonly memberProjects: ReadonlyArray<

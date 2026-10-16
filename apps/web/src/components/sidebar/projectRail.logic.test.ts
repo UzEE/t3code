@@ -8,6 +8,7 @@ import {
   NO_PROJECT_SCOPE_KEY,
   orderProjectRailEntries,
   resolveProjectRailShortcut,
+  resolveRailNewThreadProjectRef,
   selectProjectRailPreviewThreads,
 } from "./projectRail.logic";
 
@@ -146,5 +147,42 @@ describe("countProjectRailAttention", () => {
         ["unseen", true],
       ]),
     );
+  });
+});
+
+describe("resolveRailNewThreadProjectRef", () => {
+  const remoteId = EnvironmentId.make("environment-remote");
+  const local = { environmentId, projectId: ProjectId.make("pageship-local") };
+  const remote = { environmentId: remoteId, projectId: ProjectId.make("pageship-remote") };
+  const pageship = {
+    environmentId,
+    id: local.projectId,
+    memberProjectRefs: [local, remote],
+  };
+
+  it("opens new threads in the scoped project, not the open thread's", () => {
+    const other = { environmentId, projectId: ProjectId.make("t3code") };
+    expect(
+      resolveRailNewThreadProjectRef({ scopedGroup: pageship, activeProjectRef: other }),
+    ).toEqual(local);
+    expect(
+      resolveRailNewThreadProjectRef({ scopedGroup: pageship, activeProjectRef: null }),
+    ).toEqual(local);
+  });
+
+  it("prefers the scoped project's copy in the open thread's environment", () => {
+    const otherRemote = { environmentId: remoteId, projectId: ProjectId.make("t3code-remote") };
+    expect(
+      resolveRailNewThreadProjectRef({ scopedGroup: pageship, activeProjectRef: otherRemote }),
+    ).toEqual(remote);
+  });
+
+  it("keeps the default when unscoped or the open thread is in scope", () => {
+    expect(resolveRailNewThreadProjectRef({ scopedGroup: null, activeProjectRef: local })).toBe(
+      null,
+    );
+    expect(
+      resolveRailNewThreadProjectRef({ scopedGroup: pageship, activeProjectRef: remote }),
+    ).toBe(null);
   });
 });

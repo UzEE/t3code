@@ -91,6 +91,7 @@ import {
   memo,
   useCallback,
   useEffect,
+  useEffectEvent,
   useLayoutEffect,
   useMemo,
   useReducer,
@@ -147,7 +148,7 @@ import { useSidebarProjectGroups } from "../hooks/useSidebarProjectGroups";
 import { useTerminalFocus } from "../hooks/useTerminalFocus";
 import { isCommandPaletteOpen, openCommandPalette } from "../commandPaletteBus";
 import { registerSettleAndAdvance } from "../settleAndAdvance";
-import { startNewThreadFromContext } from "../lib/chatThreadActions";
+import { resolveThreadActionProjectRef, startNewThreadFromContext } from "../lib/chatThreadActions";
 import { useClientSettings } from "../hooks/useSettings";
 import { useCopyToClipboard } from "../hooks/useCopyToClipboard";
 import { useLocalStorage } from "../hooks/useLocalStorage";
@@ -292,6 +293,7 @@ import {
   NO_PROJECT_SCOPE_KEY,
   orderProjectRailEntries,
   resolveProjectRailShortcut,
+  resolveRailNewThreadProjectRef,
 } from "./sidebar/projectRail.logic";
 import { SidebarHeaderIconButton, SidebarThreadHeader } from "./sidebar/SidebarThreadHeader";
 import { Menu, MenuItem, MenuPopup, MenuSeparator, MenuShortcut, MenuTrigger } from "./ui/menu";
@@ -2449,6 +2451,23 @@ export default function Sidebar() {
         : (projectGroups.find((project) => project.projectKey === projectScopeKey) ?? null),
     [projectGroups, projectScopeKey],
   );
+  // While the rail scopes the list to one project, new threads open there
+  // instead of in the open thread's project. False leaves the default.
+  const startRailScopedNewThread = useCallback(() => {
+    if (!projectRailEnabled) return false;
+    const projectRef = resolveRailNewThreadProjectRef({
+      scopedGroup: scopedProjectGroup,
+      activeProjectRef: resolveThreadActionProjectRef({
+        activeThread: newThreadContext.activeThread ?? undefined,
+        activeDraftThread: newThreadContext.activeDraftThread,
+        defaultProjectRef: null,
+        handleNewThread: newThreadContext.handleNewThread,
+      }),
+    });
+    if (!projectRef) return false;
+    void newThreadContext.handleNewThread(projectRef);
+    return true;
+  }, [newThreadContext, projectRailEnabled, scopedProjectGroup]);
   const isNoProjectScope = projectScopeKey === NO_PROJECT_SCOPE_KEY;
   const scopedProjectKeys = useMemo(() => {
     const scopedGroups = isNoProjectScope
@@ -4634,6 +4653,30 @@ export default function Sidebar() {
     threadByKey,
   ]);
 
+  // Capture phase, so the scoped project wins over the chat route's own
+  // chat.newLocal handler, which opens the thread in the open thread's project.
+  const onRailNewThreadKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    if (event.defaultPrevented || event.repeat || isCommandPaletteOpen()) return;
+    const command = resolveShortcutCommand(event, keybindings, {
+      platform: navigator.platform,
+      context: {
+        terminalFocus: isTerminalFocused(),
+        terminalOpen: routeTerminalOpen,
+        modelPickerOpen: isModelPickerOpen(),
+        isWeb: !isElectron,
+        isDesktop: isElectron,
+      },
+    });
+    if (command !== "chat.newLocal" || !startRailScopedNewThread()) return;
+    event.preventDefault();
+    event.stopPropagation();
+  });
+  useEffect(() => {
+    const onWindowKeyDown = (event: KeyboardEvent) => onRailNewThreadKeyDown(event);
+    window.addEventListener("keydown", onWindowKeyDown, true);
+    return () => window.removeEventListener("keydown", onWindowKeyDown, true);
+  }, []);
+
   const shortcutModifiers = useShortcutModifierState();
   const terminalFocused = useTerminalFocus();
   const shouldShowJumpHintsNow = shouldShowThreadJumpHintsForModifiers(
@@ -4689,6 +4732,7 @@ export default function Sidebar() {
     (event?: ReactMouseEvent) => {
       if (shouldCreateNewThreadInCurrentProject(event?.shiftKey ?? false, projectGroups.length)) {
         if (isMobile) setOpenMobile(false);
+        if (startRailScopedNewThread()) return;
         void startNewThreadFromContext({
           activeDraftThread: newThreadContext.activeDraftThread,
           activeThread: newThreadContext.activeThread ?? undefined,
@@ -4700,7 +4744,7 @@ export default function Sidebar() {
       if (isMobile) setOpenMobile(false);
       openCommandPalette({ open: "new-thread-in" });
     },
-    [isMobile, newThreadContext, projectGroups.length, setOpenMobile],
+    [isMobile, newThreadContext, projectGroups.length, setOpenMobile, startRailScopedNewThread],
   );
 
   const newThreadShortcutLabel =
