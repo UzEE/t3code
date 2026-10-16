@@ -11,7 +11,15 @@ import { restrictToFirstScrollableAncestor, restrictToVerticalAxis } from "@dnd-
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { LayersIcon, MessageSquareDashedIcon, PlusIcon } from "lucide-react";
-import { memo, useCallback, useMemo, type MouseEvent, type ReactNode } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 
 import { cn } from "../../lib/utils";
 import { usePanelAnimationSettings, usePanelPresence } from "../../panelAnimations";
@@ -324,6 +332,41 @@ export const ProjectRail = memo(function ProjectRail(props: ProjectRailProps) {
     </TooltipProvider>
   );
 });
+
+/**
+ * Selects a newly added project on the rail. Adding a project opens a new
+ * draft in it, so a project that appeared after the snapshots loaded and is
+ * the route draft's project gets selected once. Projects added elsewhere,
+ * such as by an agent or another device, leave the selection alone.
+ */
+export function useSelectAddedRailProject(input: {
+  enabled: boolean;
+  snapshotsReady: boolean;
+  scopeKeyByProjectRef: ReadonlyMap<string, string>;
+  /** `environmentId:projectId` of the draft the route shows, else null. */
+  routeDraftProjectRef: string | null;
+  onSelectScope: (scopeKey: string) => void;
+}) {
+  const { enabled, onSelectScope, routeDraftProjectRef, scopeKeyByProjectRef, snapshotsReady } =
+    input;
+  const seenRef = useRef<Set<string> | null>(null);
+  const addedRef = useRef(new Set<string>());
+  useEffect(() => {
+    if (!snapshotsReady) return;
+    if (seenRef.current === null) {
+      seenRef.current = new Set(scopeKeyByProjectRef.keys());
+    } else {
+      for (const projectRef of scopeKeyByProjectRef.keys()) {
+        if (seenRef.current.has(projectRef)) continue;
+        seenRef.current.add(projectRef);
+        addedRef.current.add(projectRef);
+      }
+    }
+    if (!enabled || routeDraftProjectRef === null) return;
+    const scopeKey = scopeKeyByProjectRef.get(routeDraftProjectRef);
+    if (scopeKey && addedRef.current.delete(routeDraftProjectRef)) onSelectScope(scopeKey);
+  }, [enabled, onSelectScope, routeDraftProjectRef, scopeKeyByProjectRef, snapshotsReady]);
+}
 
 /**
  * Shows the rail by growing its column in step with the sidebar's own width
