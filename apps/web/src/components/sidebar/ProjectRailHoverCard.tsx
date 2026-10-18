@@ -1,6 +1,6 @@
 import { scopedThreadKey, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { threadWokeAt } from "@t3tools/client-runtime/state/thread-settled";
-import { createContext, use, useMemo } from "react";
+import { createContext, use } from "react";
 
 import { cn } from "../../lib/utils";
 import type {
@@ -63,6 +63,45 @@ function EnvironmentChip(props: {
   );
 }
 
+function resolvePreview(
+  data: ProjectRailCardData,
+  scopeKey: string,
+  localLastVisitedAtByKey: Readonly<Record<string, string>>,
+) {
+  const lastVisitedAt = (thread: SidebarThreadSummary) =>
+    resolveThreadLastVisitedAt(
+      thread.lastVisitedAt,
+      localLastVisitedAtByKey[scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id))],
+    );
+  const selected = selectProjectRailPreviewThreads({
+    threads: data.threads,
+    scopeKey,
+    scopeKeyByProjectRef: data.scopeKeyByProjectRef,
+    resolveLastVisitedAt: lastVisitedAt,
+    now: data.now,
+    limit: PREVIEW_THREAD_LIMIT,
+  });
+  return {
+    total: selected.total,
+    rows: selected.threads.map(({ thread, isUnread }) => {
+      // Same rule as the thread row: a timer wake stays lit until the user visits.
+      const wokeAtMs = parseTimestampMs(threadWokeAt(thread, { now: data.now }));
+      const visitedMs = parseTimestampMs(lastVisitedAt(thread));
+      const isWoke = wokeAtMs !== null && (visitedMs === null || visitedMs < wokeAtMs);
+      return {
+        thread,
+        isUnread,
+        badge: resolveSidebarThreadStatusBadge({
+          status: resolveSidebarThreadStatus(thread),
+          isUnread,
+          isWoke,
+          goalActive: thread.goal?.status === "active",
+        }),
+      };
+    }),
+  };
+}
+
 /** Hover card for one rail icon: where the project lives and what is open in it. */
 export function ProjectRailHoverCard(props: {
   scopeKey: string;
@@ -79,41 +118,7 @@ export function ProjectRailHoverCard(props: {
   ];
   const repository = project ? repositoryLabel(project) : null;
 
-  const preview = useMemo(() => {
-    if (!data) return null;
-    const lastVisitedAt = (thread: SidebarThreadSummary) =>
-      resolveThreadLastVisitedAt(
-        thread.lastVisitedAt,
-        localLastVisitedAtByKey[scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id))],
-      );
-    const selected = selectProjectRailPreviewThreads({
-      threads: data.threads,
-      scopeKey,
-      scopeKeyByProjectRef: data.scopeKeyByProjectRef,
-      resolveLastVisitedAt: lastVisitedAt,
-      now: data.now,
-      limit: PREVIEW_THREAD_LIMIT,
-    });
-    return {
-      total: selected.total,
-      rows: selected.threads.map(({ thread, isUnread }) => {
-        // Same rule as the thread row: a timer wake stays lit until the user visits.
-        const wokeAtMs = parseTimestampMs(threadWokeAt(thread, { now: data.now }));
-        const visitedMs = parseTimestampMs(lastVisitedAt(thread));
-        const isWoke = wokeAtMs !== null && (visitedMs === null || visitedMs < wokeAtMs);
-        return {
-          thread,
-          isUnread,
-          badge: resolveSidebarThreadStatusBadge({
-            status: resolveSidebarThreadStatus(thread),
-            isUnread,
-            isWoke,
-            goalActive: thread.goal?.status === "active",
-          }),
-        };
-      }),
-    };
-  }, [data, localLastVisitedAtByKey, scopeKey]);
+  const preview = data ? resolvePreview(data, scopeKey, localLastVisitedAtByKey) : null;
 
   return (
     <ThreadHoverCard

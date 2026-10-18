@@ -11,15 +11,7 @@ import { restrictToFirstScrollableAncestor, restrictToVerticalAxis } from "@dnd-
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { LayersIcon, MessageSquareDashedIcon, PlusIcon } from "lucide-react";
-import {
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  type MouseEvent,
-  type ReactNode,
-} from "react";
+import { memo, useEffect, useRef, type MouseEvent, type ReactNode } from "react";
 
 import { cn } from "../../lib/utils";
 import { usePanelAnimationSettings, usePanelPresence } from "../../panelAnimations";
@@ -154,13 +146,10 @@ const RailEntry = memo(function RailEntry(props: {
   const { setNodeRef, transform, transition, listeners, isDragging } = useSortable({
     id: scopeKey,
   });
-  const handleClick = useCallback(() => onSelectScope(scopeKey), [onSelectScope, scopeKey]);
-  const handleContextMenu = useCallback(
-    (event: MouseEvent<HTMLButtonElement>) => {
-      if (project) onOpenProjectSettings(event, project);
-    },
-    [onOpenProjectSettings, project],
-  );
+  const handleClick = () => onSelectScope(scopeKey);
+  const handleContextMenu = (event: MouseEvent<HTMLButtonElement>) => {
+    if (project) onOpenProjectSettings(event, project);
+  };
   return (
     <div
       ref={setNodeRef}
@@ -242,22 +231,16 @@ export const ProjectRail = memo(function ProjectRail(props: ProjectRailProps) {
   // Visits change this map often; subscribing here keeps those updates from
   // re-rendering the whole thread list.
   const localLastVisitedAtByKey = useUiStateStore((store) => store.threadLastVisitedAtById);
-  const attention = useMemo(
-    () =>
-      countProjectRailAttention({
-        threads,
-        scopeKeyByProjectRef,
-        now,
-        resolveLastVisitedAt: (thread) =>
-          resolveThreadLastVisitedAt(
-            thread.lastVisitedAt,
-            localLastVisitedAtByKey[
-              scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id))
-            ],
-          ),
-      }),
-    [localLastVisitedAtByKey, now, scopeKeyByProjectRef, threads],
-  );
+  const attention = countProjectRailAttention({
+    threads,
+    scopeKeyByProjectRef,
+    now,
+    resolveLastVisitedAt: (thread) =>
+      resolveThreadLastVisitedAt(
+        thread.lastVisitedAt,
+        localLastVisitedAtByKey[scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id))],
+      ),
+  });
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: RAIL_DRAG_DISTANCE } }),
@@ -265,20 +248,14 @@ export const ProjectRail = memo(function ProjectRail(props: ProjectRailProps) {
       activationConstraint: { delay: RAIL_TOUCH_DRAG_DELAY_MS, tolerance: RAIL_DRAG_DISTANCE },
     }),
   );
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (!over) return;
-      const nextOrder = moveProjectRailEntry(entries, String(active.id), String(over.id));
-      if (nextOrder) setProjectOrder(nextOrder);
-    },
-    [entries, setProjectOrder],
-  );
-  const entryKeys = useMemo(() => entries.map((entry) => entry.key), [entries]);
-  const cardData = useMemo(
-    () => ({ threads, scopeKeyByProjectRef, now, noProjectMembers }),
-    [noProjectMembers, now, scopeKeyByProjectRef, threads],
-  );
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+    const nextOrder = moveProjectRailEntry(entries, String(active.id), String(over.id));
+    if (nextOrder) setProjectOrder(nextOrder);
+  };
+  const entryKeys = entries.map((entry) => entry.key);
+  const cardData = { threads, scopeKeyByProjectRef, now, noProjectMembers };
 
   return (
     // Same timing as the thread list's hover cards: once one card is open,
