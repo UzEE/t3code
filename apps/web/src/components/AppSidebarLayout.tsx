@@ -36,10 +36,10 @@ import { selectThreadTerminalUiState, useTerminalUiStateStore } from "../termina
 import { cn, isMacPlatform } from "../lib/utils";
 import { primaryServerKeybindingsAtom } from "../state/server";
 import {
+  updateClientSettings,
   useClientSettings,
   useEnvironmentIdentificationMode,
   useLegacySidebarEnabled,
-  useUpdateClientSettings,
 } from "../hooks/useSettings";
 import {
   PanelAnimationSuppressionProvider,
@@ -235,8 +235,6 @@ function routePanelsOpen(routeThreadRef: ReturnType<typeof useThreadRouteRef>) {
 function ProjectRailShortcut() {
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
   const projectRailEnabled = useClientSettings((settings) => settings.sidebarProjectRailEnabled);
-  const updateClientSettings = useUpdateClientSettings();
-
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
@@ -255,7 +253,7 @@ function ProjectRailShortcut() {
 
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [keybindings, projectRailEnabled, updateClientSettings]);
+  }, [keybindings, projectRailEnabled]);
 
   return null;
 }
