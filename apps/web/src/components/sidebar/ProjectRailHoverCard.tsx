@@ -11,7 +11,8 @@ import { useEnvironmentMachines } from "../../state/environments";
 import type { SidebarThreadSummary } from "../../types";
 import { useUiStateStore } from "../../uiStateStore";
 import { EnvironmentMachineIcon } from "../EnvironmentMachineIcon";
-import { GitHubIcon, GitIcon } from "../Icons";
+import { GitIcon } from "../Icons";
+import { getSourceControlPresentationForKind } from "../../sourceControlPresentation";
 import { resolveSidebarThreadStatus, resolveThreadLastVisitedAt } from "../Sidebar.logic";
 import { ThreadHoverCard } from "../ThreadHoverCard";
 import { selectProjectRailPreviewThreads } from "./projectRail.logic";
@@ -19,6 +20,8 @@ import {
   resolveSidebarThreadStatusBadge,
   SidebarThreadStatusIcon,
 } from "./SidebarThreadStatusIcon";
+
+const GitHubIcon = getSourceControlPresentationForKind("github").Icon;
 
 const PREVIEW_THREAD_LIMIT = 5;
 
