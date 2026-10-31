@@ -2993,7 +2993,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     : null;
   const projectRailVisible = useProjectRailVisible();
   const startRailScopedNewThread = useRailScopedNewThread({
-    projectGroups,
+    projectGroups: scopeGroups,
     selectedScopeKeys: projectScopeKeys,
     newThreadContext,
     routeThreadRef,
@@ -3045,7 +3045,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     <SidebarFolderDrop>
       <SidebarChromeHeader isElectron={isElectron} />
       <ProjectRailColumn
-        projectGroups={projectGroups}
+        projectGroups={scopeGroups}
         selectedScopeKeys={projectScopeKeys}
         onSelectedScopeKeysChange={setProjectScopeKeys}
         threads={threads}
