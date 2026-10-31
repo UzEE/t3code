@@ -2918,7 +2918,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   const showJumpHints = useThreadJumpHintsVisible(shouldShowJumpHintsNow);
   const projectRailVisible = useProjectRailVisible();
   const startRailScopedNewThread = useRailScopedNewThread({
-    projectGroups,
+    projectGroups: scopeGroups,
     selectedScopeKeys: projectScopeKeys,
     newThreadContext,
     terminalOpen: routeTerminalOpen,
@@ -2961,7 +2961,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
       <ThreadContextDragGhost />
       <SidebarChromeHeader isElectron={isElectron} />
       <ProjectRailColumn
-        projectGroups={projectGroups}
+        projectGroups={scopeGroups}
         selectedScopeKeys={projectScopeKeys}
         onSelectedScopeKeysChange={setProjectScopeKeys}
         threads={threads}
