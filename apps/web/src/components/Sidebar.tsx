@@ -249,6 +249,11 @@ import {
 import { SidebarContent, SidebarGroup, useSidebar } from "./ui/sidebar";
 import { SidebarChromeFooter, SidebarChromeHeader } from "./sidebar/SidebarChrome";
 import { SidebarHeaderIconButton, SidebarThreadHeader } from "./sidebar/SidebarThreadHeader";
+import {
+  ProjectRailColumn,
+  useProjectRailVisible,
+  useRailScopedNewThread,
+} from "./sidebar/ProjectRail";
 import { TooltipProvider } from "./ui/tooltip";
 import { composerDraftHasUserContent, DraftId, useComposerDraftStore } from "../composerDraftStore";
 import { useThreadRouteTarget } from "../hooks/useThreadRouteTarget";
@@ -2911,6 +2916,13 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     },
   );
   const showJumpHints = useThreadJumpHintsVisible(shouldShowJumpHintsNow);
+  const projectRailVisible = useProjectRailVisible();
+  const startRailScopedNewThread = useRailScopedNewThread({
+    projectGroups,
+    selectedScopeKeys: projectScopeKeys,
+    newThreadContext,
+    terminalOpen: routeTerminalOpen,
+  });
 
   const handleNewThreadClick = (event?: ReactMouseEvent) => {
     if (
@@ -2922,6 +2934,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
       )
     ) {
       if (isMobile) setOpenMobile(false);
+      if (startRailScopedNewThread()) return;
       // With no current or open project, such as when every project is archived, pick one.
       void startNewThreadFromContext({
         activeDraftThread: newThreadContext.activeDraftThread,
@@ -2947,13 +2960,28 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     <>
       <ThreadContextDragGhost />
       <SidebarChromeHeader isElectron={isElectron} />
+      <ProjectRailColumn
+        projectGroups={projectGroups}
+        selectedScopeKeys={projectScopeKeys}
+        onSelectedScopeKeysChange={setProjectScopeKeys}
+        threads={threads}
+        now={snoozeNow}
+        snapshotsReady={allProjectSnapshotsReady && allProjectConfigsReady}
+        routeDraftProjectRef={
+          routeDraftThread
+            ? `${routeDraftThread.environmentId}:${routeDraftThread.projectId}`
+            : null
+        }
+        terminalOpen={routeTerminalOpen}
+        onOpenProjectSettings={openProjectSettings}
+      />
       <SidebarContent
         className="min-h-full"
         fixedHeader={
           <SidebarGroup className="z-[1]">
             <SidebarThreadHeader
               searchFieldRef={headerSearchRef}
-              hasProjects={projectGroups.length > 0}
+              hasProjects={projectGroups.length > 0 && !projectRailVisible}
               projectScope={
                 <Combobox
                   items={projectScopeItems}

@@ -144,6 +144,26 @@ type WhenToken =
   | { type: "lparen" }
   | { type: "rparen" };
 
+// Script-shaped ids, because official T3 servers only save custom shortcuts for
+// commands they know, and they accept any `script.<id>.run`.
+export const PROJECT_RAIL_COMMANDS = {
+  toggle: "script.project-rail-toggle.run",
+  showAll: "script.project-rail-show-all.run",
+  previous: "script.project-rail-previous.run",
+  next: "script.project-rail-next.run",
+  jump: [
+    "script.project-rail-jump-1.run",
+    "script.project-rail-jump-2.run",
+    "script.project-rail-jump-3.run",
+    "script.project-rail-jump-4.run",
+    "script.project-rail-jump-5.run",
+    "script.project-rail-jump-6.run",
+    "script.project-rail-jump-7.run",
+    "script.project-rail-jump-8.run",
+    "script.project-rail-jump-9.run",
+  ],
+} as const;
+
 export const DEFAULT_KEYBINDINGS: ReadonlyArray<KeybindingRule> = [
   { key: "mod+b", command: "sidebar.toggle" },
   { key: "f6", command: "workspace.focusNext" },
@@ -236,6 +256,14 @@ export const DEFAULT_KEYBINDINGS: ReadonlyArray<KeybindingRule> = [
   { key: "mod+shift+2", command: "usage.period.week", when: "usagePageOpen" },
   { key: "mod+shift+3", command: "usage.period.month", when: "usagePageOpen" },
   { key: "mod+shift+4", command: "usage.period.quarter", when: "usagePageOpen" },
+  { key: "mod+alt+r", command: PROJECT_RAIL_COMMANDS.toggle },
+  { key: "mod+alt+[", command: PROJECT_RAIL_COMMANDS.previous },
+  { key: "mod+alt+]", command: PROJECT_RAIL_COMMANDS.next },
+  { key: "mod+alt+0", command: PROJECT_RAIL_COMMANDS.showAll },
+  ...PROJECT_RAIL_COMMANDS.jump.map((command, index) => ({
+    key: `mod+alt+${index + 1}`,
+    command,
+  })),
 ];
 
 function normalizeKeyToken(token: string): string {

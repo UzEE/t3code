@@ -67,8 +67,11 @@ import {
 import { providerInstanceEntriesFor } from "../../providerInstances";
 import { ensureLocalApi, readLocalApi } from "../../localApi";
 import { isMacPlatform } from "../../lib/utils";
+import { useBoringSidebarEnabled } from "../../hooks/useSettings";
+import { PROJECT_RAIL_COMMANDS } from "@t3tools/shared/keybindings";
 import { useEnvironmentProviders, useEnvironments } from "../../state/environments";
-import { EMPTY_SERVER_PROVIDERS } from "../../state/server";
+import { EMPTY_SERVER_PROVIDERS, primaryServerKeybindingsAtom } from "../../state/server";
+import { shortcutLabelForCommand } from "../../keybindings";
 import { Button } from "../ui/button";
 import { DraftInput } from "../ui/draft-input";
 import { Input } from "../ui/input";
@@ -457,6 +460,9 @@ export function useSettingsRestore(onRestored?: () => void) {
     ...(settings.sidebarWorkingShelfEnabled !== DEFAULT_UNIFIED_SETTINGS.sidebarWorkingShelfEnabled
       ? ["Working section"]
       : []),
+    ...(settings.sidebarProjectRailEnabled !== DEFAULT_UNIFIED_SETTINGS.sidebarProjectRailEnabled
+      ? ["Project rail"]
+      : []),
     ...(settings.sidebarAutoSettleAfterDays !== DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays
       ? ["Auto-settle inactive threads"]
       : []),
@@ -623,6 +629,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       sidebarProjectGroupingMode: DEFAULT_UNIFIED_SETTINGS.sidebarProjectGroupingMode,
       sidebarProjectSortOrder: DEFAULT_UNIFIED_SETTINGS.sidebarProjectSortOrder,
       sidebarWorkingShelfEnabled: DEFAULT_UNIFIED_SETTINGS.sidebarWorkingShelfEnabled,
+      sidebarProjectRailEnabled: DEFAULT_UNIFIED_SETTINGS.sidebarProjectRailEnabled,
       sidebarAutoSettleAfterDays: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays,
       sidebarAutoSettleKeepPullRequests: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleKeepPullRequests,
       sidebarAutoSettleOnMerge: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleOnMerge,
@@ -755,6 +762,11 @@ export function LegacyFeaturesSection() {
 export function GeneralSettingsPanel() {
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
+  const boringSidebarEnabled = useBoringSidebarEnabled();
+  const projectRailShortcutLabel = shortcutLabelForCommand(
+    useAtomValue(primaryServerKeybindingsAtom),
+    PROJECT_RAIL_COMMANDS.toggle,
+  );
   const lastEnabledProjectGroupingMode = useRef<SidebarProjectGroupingMode>(
     readLastEnabledProjectGroupingMode(),
   );
@@ -875,6 +887,34 @@ export function GeneralSettingsPanel() {
                 updateSettings({ sidebarWorkingShelfEnabled: Boolean(checked) })
               }
               aria-label="Working section"
+            />
+          }
+        />
+
+        <SettingsRow
+          {...searchableSetting("project-rail")}
+          description={`Show a column of project icons beside the thread list. Each icon filters the list and counts threads that need you.${projectRailShortcutLabel ? ` Toggle with ${projectRailShortcutLabel}.` : ""}`}
+          resetAction={
+            settings.sidebarProjectRailEnabled !==
+            DEFAULT_UNIFIED_SETTINGS.sidebarProjectRailEnabled ? (
+              <SettingResetButton
+                label="project rail"
+                onClick={() =>
+                  updateSettings({
+                    sidebarProjectRailEnabled: DEFAULT_UNIFIED_SETTINGS.sidebarProjectRailEnabled,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Switch
+              checked={settings.sidebarProjectRailEnabled && !boringSidebarEnabled}
+              disabled={boringSidebarEnabled}
+              onCheckedChange={(checked) =>
+                updateSettings({ sidebarProjectRailEnabled: Boolean(checked) })
+              }
+              aria-label="Project rail"
             />
           }
         />
