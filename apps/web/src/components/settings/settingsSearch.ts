@@ -638,6 +638,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["test voice speech model transcription recognition"],
   },
   {
+    id: "project-rail",
+    title: "Project rail",
+    to: "/settings/general",
+    searchTerms: ["projects icons column switcher badge attention sidebar discord slack"],
+  },
+  {
     id: "auto-settle-inactive-threads",
     title: "Auto-settle inactive threads",
     to: "/settings/threads",

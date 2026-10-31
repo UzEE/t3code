@@ -17,7 +17,11 @@ import {
   threadUndoClaimsShortcut,
   undoLatestThreadAction,
 } from "../hooks/showThreadUndoNotice";
-import { getLocalStorageItem, removeLocalStorageItem } from "../hooks/useLocalStorage";
+import {
+  getLocalStorageItem,
+  removeLocalStorageItem,
+  setLocalStorageItem,
+} from "../hooks/useLocalStorage";
 import {
   isRichTextBoldShortcut,
   resolveShortcutCommand,
@@ -32,6 +36,8 @@ import { selectThreadTerminalUiState, useTerminalUiStateStore } from "../termina
 import { cn, isMacPlatform } from "../lib/utils";
 import { primaryServerKeybindingsAtom } from "../state/server";
 import { useEnvironmentIdentificationMode } from "../hooks/useSettings";
+import { useProjectRailVisible } from "./sidebar/ProjectRail";
+import { PROJECT_RAIL_WIDTH } from "./sidebar/projectRail.logic";
 import {
   PanelAnimationSuppressionProvider,
   usePanelAnimationSettings,
@@ -429,12 +435,17 @@ export function AppSidebarLayout({
   const panelAnimationsSuppressed = usePanelNavigationSuppression(pathname);
   const routePanelAnimationsActive = panelAnimationsActive && !panelAnimationsSuppressed;
   const isMacosDesktop = isElectron && isMacPlatform(navigator.platform);
+  // The sidebar grows by the rail's width, so the thread list keeps the width the user chose.
+  const railWidth = useProjectRailVisible() ? PROJECT_RAIL_WIDTH : 0;
   const [sidebarWidth, setSidebarWidth] = useState(readInitialThreadSidebarWidth);
   // A clamped drag may not change width, so viewport changes need a separate subscription.
   const viewportWidth = useSyncExternalStore(subscribeToViewportWidth, readViewportWidth);
   const [brandWidth, setBrandWidth] = useState(0);
   const sidebarMinimumWidth = resolveThreadSidebarMinimumWidth(brandWidth);
-  const sidebarMaximumWidth = resolveThreadSidebarMaximumWidth(viewportWidth, sidebarMinimumWidth);
+  const sidebarMaximumWidth = resolveThreadSidebarMaximumWidth(
+    viewportWidth - railWidth,
+    sidebarMinimumWidth,
+  );
   const resetSidebarWidth = () => {
     try {
       removeLocalStorageItem(THREAD_SIDEBAR_WIDTH_STORAGE_KEY);
@@ -453,9 +464,16 @@ export function AppSidebarLayout({
       : {}
   ) as CSSProperties;
   const sidebarProviderStyle = {
-    "--sidebar-width": `${clampThreadSidebarWidth(sidebarWidth, sidebarMinimumWidth, sidebarMaximumWidth)}px`,
+    "--sidebar-width": `${clampThreadSidebarWidth(sidebarWidth, sidebarMinimumWidth, sidebarMaximumWidth) + railWidth}px`,
     "--panel-animation-duration": `${panelAnimationDurationMs}ms`,
     ...windowControlsInsetStyle,
+    ...(!(isMacosDesktop && !isWindowFullscreen) && railWidth > 0
+      ? // Centers the sidebar toggle over the rail's icons, net of the rail's
+        // right border and the toggle's own 1px margin.
+        {
+          "--workspace-controls-left": `calc(env(safe-area-inset-left) + (${railWidth}px - 1px - var(--workspace-titlebar-control-size)) / 2 - 1px)`,
+        }
+      : {}),
   } as CSSProperties;
 
   return (
@@ -477,15 +495,36 @@ export function AppSidebarLayout({
               role="navigation"
               aria-label="Threads"
               resizable={{
-                maxWidth: sidebarMaximumWidth,
-                minWidth: sidebarMinimumWidth,
+                maxWidth: sidebarMaximumWidth + railWidth,
+                minWidth: sidebarMinimumWidth + railWidth,
                 shouldAcceptWidth: ({ currentWidth, nextWidth, wrapper }) =>
                   nextWidth <= currentWidth ||
                   wrapper.clientWidth - nextWidth >= THREAD_MAIN_CONTENT_MIN_WIDTH,
-                storageKey: THREAD_SIDEBAR_WIDTH_STORAGE_KEY,
-                onResize: setSidebarWidth,
+                onResize: (width) => {
+                  const threadListWidth = width - railWidth;
+                  setSidebarWidth(threadListWidth);
+                  try {
+                    setLocalStorageItem(
+                      THREAD_SIDEBAR_WIDTH_STORAGE_KEY,
+                      threadListWidth,
+                      Schema.Finite,
+                    );
+                  } catch (error) {
+                    console.error("Could not persist thread sidebar width.", error);
+                  }
+                },
               }}
-              style={windowControlsInsetStyle}
+              style={
+                {
+                  ...windowControlsInsetStyle,
+                  // Lines the brand up with the thread rows, unless the toggle needs that space.
+                  ...(railWidth > 0
+                    ? {
+                        "--workspace-titlebar-content-left": `max(calc(var(--workspace-controls-left) + var(--workspace-titlebar-control-size) + var(--workspace-titlebar-control-gap)), calc(${railWidth}px + var(--sidebar-content-inset) + 0.5rem))`,
+                      }
+                    : {}),
+                } as CSSProperties
+              }
             >
               <ThreadSidebar routeReveal={sidebarRouteReveal} />
               <SidebarRail onDoubleClick={resetSidebarWidth} />
