@@ -67,6 +67,7 @@ import {
   MessageSquareDashedIcon,
   LinkIcon,
   MessageSquareIcon,
+  PanelLeftIcon,
   PaletteIcon,
   RotateCcwIcon,
   SettingsIcon,
@@ -104,7 +105,12 @@ import {
   copyPromptLink,
   promptLinkRepositoryOf,
 } from "./promptLinks/copyPromptLink";
-import { useClientSettings } from "../hooks/useSettings";
+import {
+  updateClientSettings,
+  useBoringSidebarEnabled,
+  useClientSettings,
+} from "../hooks/useSettings";
+import { PROJECT_RAIL_COMMANDS } from "@t3tools/shared/keybindings";
 import { useStableCallback } from "../hooks/useStableCallback";
 import { readLocalApi } from "../localApi";
 import { configuredHostedAppUrl } from "../hostedPairing";
@@ -437,6 +443,8 @@ function OpenCommandPaletteDialog(props: {
     setHighlightedItemValue(null);
   }
   const clientSettings = useClientSettings(selectCommandPaletteClientSettings);
+  const projectRailEnabled = useClientSettings((s) => s.sidebarProjectRailEnabled);
+  const boringSidebarEnabled = useBoringSidebarEnabled();
   const createProject = useAtomCommand(projectEnvironment.create, {
     reportFailure: false,
   });
@@ -1566,6 +1574,20 @@ function OpenCommandPaletteDialog(props: {
   actionItems.push(changeAppearanceItem);
 
   actionItems.push(themeEditorItem);
+
+  if (!boringSidebarEnabled) {
+    actionItems.push({
+      kind: "action",
+      value: "action:project-rail",
+      searchTerms: ["project rail", "projects", "sidebar", "icons", "toggle"],
+      title: projectRailEnabled ? "Hide project rail" : "Show project rail",
+      icon: <PanelLeftIcon className={ITEM_ICON_CLASS} />,
+      shortcutCommand: PROJECT_RAIL_COMMANDS.toggle,
+      run: async () => {
+        await updateClientSettings({ sidebarProjectRailEnabled: !projectRailEnabled });
+      },
+    });
+  }
 
   if (environments.some((environment) => environment.serverConfig !== null)) {
     actionItems.push({
