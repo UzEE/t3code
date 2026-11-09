@@ -74,7 +74,7 @@ import {
 import { useTextGenerationTargets } from "../../textGenerators";
 import { ensureLocalApi, readLocalApi } from "../../localApi";
 import { isMacPlatform } from "../../lib/utils";
-import { useBoringSidebarEnabled } from "../../hooks/useSettings";
+import { useClientSettings } from "../../hooks/useSettings";
 import { PROJECT_RAIL_COMMANDS } from "@t3tools/shared/keybindings";
 import {
   useEnvironmentProviders,
@@ -801,7 +801,7 @@ export function GeneralSettingsPanel() {
   const setting = useTranslatedSearchableSetting();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
-  const boringSidebarEnabled = useBoringSidebarEnabled();
+  const boringSidebarEnabled = useClientSettings((settings) => settings.boringSidebarEnabled);
   const projectRailShortcutLabel = shortcutLabelForCommand(
     useAtomValue(primaryServerKeybindingsAtom),
     PROJECT_RAIL_COMMANDS.toggle,

@@ -34,11 +34,7 @@ import { deadlineAfter } from "@t3tools/client-runtime/clock";
 
 import { isCommandPaletteOpen, openCommandPalette } from "../../commandPaletteBus";
 import { useHandleNewThread } from "../../hooks/useHandleNewThread";
-import {
-  updateClientSettings,
-  useBoringSidebarEnabled,
-  useClientSettings,
-} from "../../hooks/useSettings";
+import { updateClientSettings, useClientSettings } from "../../hooks/useSettings";
 import { useStableCallback } from "../../hooks/useStableCallback";
 import { useDeadlinePassed } from "../../hooks/useDeadline";
 import {
@@ -506,7 +502,7 @@ function ProjectRailReveal(props: { open: boolean; children: ReactNode }) {
 /** On unless the user turned it off; the boring sidebar's folders replace it. */
 export function useProjectRailVisible(): boolean {
   const enabled = useClientSettings((settings) => settings.sidebarProjectRailEnabled);
-  const boringSidebarEnabled = useBoringSidebarEnabled();
+  const boringSidebarEnabled = useClientSettings((settings) => settings.boringSidebarEnabled);
   return enabled && !boringSidebarEnabled;
 }
 
@@ -606,7 +602,7 @@ export function ProjectRailColumn(props: {
   const { onSelectedScopeKeysChange, projectGroups, selectedScopeKeys, routeThreadRef } = props;
   const visible = useProjectRailVisible();
   const enabled = useClientSettings((settings) => settings.sidebarProjectRailEnabled);
-  const boringSidebarEnabled = useBoringSidebarEnabled();
+  const boringSidebarEnabled = useClientSettings((settings) => settings.boringSidebarEnabled);
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
   const projectOrder = useUiStateStore((store) => store.projectOrder);
   const shortcutModifiers = useShortcutModifierState();
