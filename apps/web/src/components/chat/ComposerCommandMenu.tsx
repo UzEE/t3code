@@ -33,9 +33,11 @@ import { Badge } from "../ui/badge";
 import { Command, CommandGroup, CommandItem, CommandList } from "../ui/command";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { EnvironmentMachineIcon } from "../EnvironmentMachineIcon";
+import { ProjectFavicon } from "../ProjectFavicon";
 import { PierreEntryIcon } from "./PierreEntryIcon";
 import { ProviderInstanceIcon } from "./ProviderInstanceIcon";
 import { ComposerBanner } from "./ComposerBanner";
+import type { ComposerProjectItem } from "./composerProjectMentions";
 import { resolvePullRequestState } from "../pullRequest/pullRequestPresentation";
 
 export type ComposerCommandItem =
@@ -104,7 +106,8 @@ export type ComposerCommandItem =
       acpRegistryIconUrl: string | undefined;
       label: string;
       description: string;
-    };
+    }
+  | ComposerProjectItem;
 
 export const ComposerCommandMenu = memo(function ComposerCommandMenu(props: {
   listId: string;
@@ -272,6 +275,9 @@ const ComposerCommandMenuItem = memo(function ComposerCommandMenuItem(props: {
           aria-hidden="true"
           className="size-4 shrink-0 text-secondary-label"
         />
+      ) : null}
+      {props.item.type === "project" ? (
+        <ProjectFavicon project={props.item.project} className="size-4 shrink-0" />
       ) : null}
       {props.item.type === "model" ? (
         <ProviderInstanceIcon
