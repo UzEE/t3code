@@ -1,12 +1,11 @@
 import { effectiveSnoozed } from "@t3tools/client-runtime/state/thread-settled";
-import type { ScopedProjectRef } from "@t3tools/contracts";
+import { isListedThreadLineage, type ScopedProjectRef } from "@t3tools/contracts";
 import { PROJECT_RAIL_COMMANDS } from "@t3tools/shared/keybindings";
 
 import type { SidebarProjectSnapshot } from "../../sidebarProjectGrouping";
 import type { SidebarThreadSummary } from "../../types";
 import {
   hasUnseenCompletion,
-  isSidebarHiddenThread,
   orderItemsByPreferredIds,
   sortThreadsForSidebar,
 } from "../Sidebar.logic";
@@ -264,7 +263,7 @@ function threadNeedsAttention(
   lastVisitedAt: string | undefined,
   now: string,
 ): boolean {
-  if (thread.archivedAt !== null || isSidebarHiddenThread(thread)) return false;
+  if (thread.archivedAt !== null || !isListedThreadLineage(thread.lineage)) return false;
   if (thread.settledOverride === "settled") return false;
   if (effectiveSnoozed(thread, { now })) return false;
   if (
@@ -321,7 +320,7 @@ export function selectProjectRailPreviewThreads<TThread extends RailThread>(inpu
       input.scopeKeyByProjectRef.get(`${thread.environmentId}:${thread.projectId}`) ===
         input.scopeKey &&
       thread.archivedAt === null &&
-      !isSidebarHiddenThread(thread) &&
+      isListedThreadLineage(thread.lineage) &&
       thread.settledOverride !== "settled" &&
       !effectiveSnoozed(thread, { now: input.now }),
   );
