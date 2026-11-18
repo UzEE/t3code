@@ -225,12 +225,15 @@ export function useComposerMenuItems({
           },
           messages,
         ),
-        ...matchComposerProjectItems({
-          projects,
-          environmentId,
-          linkedEnvironments,
-          query: composerTrigger.query,
-        }),
+        ...matchComposerProjectItems(
+          {
+            projects,
+            environmentId,
+            linkedEnvironments,
+            query: composerTrigger.query,
+          },
+          messages,
+        ),
         // An answer to an agent's question carries thread links, not machines.
         ...(questionAttachmentTarget === null && offersMachines
           ? matchComposerEnvironmentItems(

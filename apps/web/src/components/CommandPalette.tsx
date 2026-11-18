@@ -1782,7 +1782,7 @@ function OpenCommandPaletteDialog(props: {
       kind: "action",
       value: "action:project-rail",
       searchTerms: ["project rail", "projects", "sidebar", "icons", "toggle"],
-      title: projectRailEnabled ? "Hide project rail" : "Show project rail",
+      title: projectRailEnabled ? gt("Hide project rail") : gt("Show project rail"),
       icon: <PanelLeftIcon className={ITEM_ICON_CLASS} />,
       shortcutCommand: PROJECT_RAIL_COMMANDS.toggle,
       run: async () => {

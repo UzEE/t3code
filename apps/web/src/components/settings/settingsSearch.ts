@@ -725,9 +725,9 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "project-rail",
-    title: "Project rail",
+    title: msg("Project rail"),
     to: "/settings/general",
-    searchTerms: ["projects icons column switcher badge attention sidebar discord slack"],
+    searchTerms: [msg("projects icons column switcher badge attention sidebar discord slack")],
   },
   {
     id: "auto-settle-inactive-threads",

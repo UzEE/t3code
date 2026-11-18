@@ -551,7 +551,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       ? [gt("Working section")]
       : []),
     ...(settings.sidebarProjectRailEnabled !== DEFAULT_UNIFIED_SETTINGS.sidebarProjectRailEnabled
-      ? ["Project rail"]
+      ? [gt("Project rail")]
       : []),
     ...(settings.sidebarAutoSettleAfterDays !== DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays
       ? [gt("Auto-settle inactive threads")]
@@ -999,13 +999,22 @@ export function GeneralSettingsPanel() {
         />
 
         <SettingsRow
-          {...searchableSetting("project-rail")}
-          description={`Show a column of project icons beside the thread list. Each icon filters the list and counts threads that need you.${projectRailShortcutLabel ? ` Toggle with ${projectRailShortcutLabel}.` : ""}`}
+          {...setting("project-rail")}
+          description={
+            projectRailShortcutLabel
+              ? gt(
+                  "Show a column of project icons beside the thread list. Each icon filters the list and counts threads that need you. Toggle with {shortcut}.",
+                  { shortcut: projectRailShortcutLabel },
+                )
+              : gt(
+                  "Show a column of project icons beside the thread list. Each icon filters the list and counts threads that need you.",
+                )
+          }
           resetAction={
             settings.sidebarProjectRailEnabled !==
             DEFAULT_UNIFIED_SETTINGS.sidebarProjectRailEnabled ? (
               <SettingResetButton
-                label="project rail"
+                ariaLabel={gt("Reset project rail to default")}
                 onClick={() =>
                   updateSettings({
                     sidebarProjectRailEnabled: DEFAULT_UNIFIED_SETTINGS.sidebarProjectRailEnabled,
@@ -1021,7 +1030,7 @@ export function GeneralSettingsPanel() {
               onCheckedChange={(checked) =>
                 updateSettings({ sidebarProjectRailEnabled: Boolean(checked) })
               }
-              aria-label="Project rail"
+              aria-label={gt("Project rail")}
             />
           }
         />
