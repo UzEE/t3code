@@ -1,6 +1,9 @@
 import type { EnvironmentProject } from "@t3tools/client-runtime/state/models";
 import type { EnvironmentId } from "@t3tools/contracts";
 import { foldSearchQuery, rankSearchItems, scoreSearchTerms } from "@t3tools/shared/paletteSearch";
+import { msg } from "gt-react";
+
+import { m, type MessageResolver } from "../../i18n/messages";
 
 const COMPOSER_PROJECT_RESULT_LIMIT = 5;
 
@@ -27,12 +30,15 @@ function folderName(workspaceRoot: string): string {
  * Projects to name from the `@` picker. Like threads, candidates stay on machines the agent
  * can reach (its own and linked ones), and a bare `@` matches none.
  */
-export function matchComposerProjectItems(input: {
-  readonly projects: ReadonlyArray<EnvironmentProject>;
-  readonly environmentId: EnvironmentId;
-  readonly linkedEnvironments: ReadonlyMap<EnvironmentId, string>;
-  readonly query: string;
-}): ComposerProjectItem[] {
+export function matchComposerProjectItems(
+  input: {
+    readonly projects: ReadonlyArray<EnvironmentProject>;
+    readonly environmentId: EnvironmentId;
+    readonly linkedEnvironments: ReadonlyMap<EnvironmentId, string>;
+    readonly query: string;
+  },
+  resolve: MessageResolver = m,
+): ComposerProjectItem[] {
   const query = foldSearchQuery(input.query);
   if (query.length === 0) return [];
   const candidates = input.projects.filter(
@@ -61,7 +67,10 @@ export function matchComposerProjectItems(input: {
         project,
         machine,
         label: project.title,
-        description: machine === undefined ? "Project" : `Project on ${machine}`,
+        description:
+          machine === undefined
+            ? resolve(msg("Project", { $context: "noun, search result type" }))
+            : resolve(msg("Project on {machine}", { machine })),
       };
     });
 }

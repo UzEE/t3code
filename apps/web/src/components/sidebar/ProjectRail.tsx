@@ -10,6 +10,7 @@ import {
 import { restrictToFirstScrollableAncestor, restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useGT } from "gt-react";
 import { LayersIcon, MessageSquareDashedIcon, PlusIcon } from "lucide-react";
 import { useAtomValue } from "@effect/atom-react";
 import type { KeybindingCommand, ScopedThreadRef } from "@t3tools/contracts";
@@ -258,6 +259,7 @@ const RailEntry = memo(function RailEntry(props: {
     id: scopeKey,
   });
   const tint = useRailIconTint(project);
+  const gt = useGT();
   const handleClick = (event: MouseEvent<HTMLButtonElement>) =>
     onSelectEntry(scopeKey, event.metaKey || event.ctrlKey);
   const handleContextMenu = (event: MouseEvent<HTMLButtonElement>) => {
@@ -273,7 +275,7 @@ const RailEntry = memo(function RailEntry(props: {
       style={{ transform: CSS.Translate.toString(transform), transition }}
     >
       <RailButton
-        label={project ? project.displayName : "No project"}
+        label={project ? project.displayName : gt("No project")}
         tint={tint}
         selected={props.selected}
         attentionCount={props.attentionCount}
@@ -332,6 +334,7 @@ export interface ProjectRailProps {
  * carries a count of its threads that need the user.
  */
 const ProjectRail = memo(function ProjectRail(props: ProjectRailProps) {
+  const gt = useGT();
   const {
     entries,
     jumpLabels,
@@ -387,13 +390,13 @@ const ProjectRail = memo(function ProjectRail(props: ProjectRailProps) {
     // moving to a neighbouring icon opens its card at once.
     <TooltipProvider delay={150} closeDelay={0} timeout={400}>
       <nav
-        aria-label="Projects"
+        aria-label={gt("Projects")}
         data-project-rail=""
         className="flex h-full shrink-0 flex-col items-center gap-2 border-r border-sidebar-border/70 bg-black/[0.035] pt-2 pb-3 dark:bg-black/25"
         style={{ width: PROJECT_RAIL_WIDTH }}
       >
         <RailButton
-          label="All projects"
+          label={gt("All projects")}
           selected={selectedScopeKeys.length === 0}
           attentionCount={attention.total}
           jumpLabel={jumpLabels?.all}
@@ -401,7 +404,7 @@ const ProjectRail = memo(function ProjectRail(props: ProjectRailProps) {
         >
           <LayersIcon className="size-4.5" />
         </RailButton>
-        <RailButton label="Add project" onClick={onAddProject}>
+        <RailButton label={gt("Add project")} onClick={onAddProject}>
           <PlusIcon className="size-4.5" />
         </RailButton>
         <div aria-hidden="true" className="h-px w-8 shrink-0 rounded-full bg-sidebar-border" />

@@ -10,6 +10,7 @@ import {
   ShieldQuestionIcon,
   UserRoundIcon,
 } from "lucide-react";
+import { msg, useGT, useMessages } from "gt-react";
 import { createContext, use } from "react";
 
 import { cn } from "../../lib/utils";
@@ -58,32 +59,62 @@ function resolveStatusBadge(input: {
   switch (input.status) {
     case "working":
       return {
-        label: input.goalActive ? "Goal" : "Working",
+        label: input.goalActive
+          ? msg("Goal", { $context: "thread status" })
+          : msg("Working", { $context: "thread status" }),
         Icon: CircleDashedIcon,
         className: "text-info-foreground",
       };
     case "waiting":
-      return { label: "Waiting", Icon: CircleDotDashedIcon, className: "text-muted-foreground" };
+      return {
+        label: msg("Waiting", { $context: "thread status" }),
+        Icon: CircleDotDashedIcon,
+        className: "text-muted-foreground",
+      };
     case "approval":
-      return { label: "Approval", Icon: ShieldQuestionIcon, className: "text-warning-foreground" };
+      return {
+        label: msg("Approval", { $context: "thread status" }),
+        Icon: ShieldQuestionIcon,
+        className: "text-warning-foreground",
+      };
     case "input":
       return {
-        label: "Input",
+        label: msg("Input", { $context: "thread status" }),
         Icon: MessageCircleQuestionIcon,
         className: "text-indigo-600 dark:text-indigo-300",
       };
     case "request":
-      return { label: "Request", Icon: UserRoundIcon, className: "text-guest-foreground" };
+      return {
+        label: msg("Request", { $context: "thread status" }),
+        Icon: UserRoundIcon,
+        className: "text-guest-foreground",
+      };
     case "limited":
-      return { label: "Limited", Icon: CircleAlertIcon, className: "text-warning-foreground" };
+      return {
+        label: msg("Limited", { $context: "thread status" }),
+        Icon: CircleAlertIcon,
+        className: "text-warning-foreground",
+      };
     case "failed":
-      return { label: "Failed", Icon: CircleAlertIcon, className: "text-error-foreground" };
+      return {
+        label: msg("Failed", { $context: "thread status" }),
+        Icon: CircleAlertIcon,
+        className: "text-error-foreground",
+      };
     case "ready":
       if (input.isWoke) {
-        return { label: "Woke", Icon: AlarmClockIcon, className: "text-warning-foreground" };
+        return {
+          label: msg("Woke", { $context: "thread status" }),
+          Icon: AlarmClockIcon,
+          className: "text-warning-foreground",
+        };
       }
       return input.isUnread
-        ? { label: "Done", Icon: CircleCheckIcon, className: "text-success-foreground" }
+        ? {
+            label: msg("Done", { $context: "thread status" }),
+            Icon: CircleCheckIcon,
+            className: "text-success-foreground",
+          }
         : null;
   }
 }
@@ -164,6 +195,8 @@ export function ProjectRailHoverCard(props: {
   const data = use(ProjectRailCardContext);
   const localLastVisitedAtByKey = useUiStateStore((store) => store.threadLastVisitedAtById);
   const machineByEnvironmentId = useEnvironmentMachines();
+  const gt = useGT();
+  const m = useMessages();
   const { project, scopeKey } = props;
 
   const members = project?.memberProjects ?? data?.noProjectMembers ?? [];
@@ -176,7 +209,7 @@ export function ProjectRailHoverCard(props: {
 
   return (
     <ThreadHoverCard
-      title={project?.displayName ?? "No project"}
+      title={project?.displayName ?? gt("No project")}
       footer={
         preview && preview.total > 0 ? (
           <div className="grid gap-1 border-t border-border/60 pt-2 pl-0.5 text-xs">
@@ -196,14 +229,14 @@ export function ProjectRailHoverCard(props: {
                 {badge ? (
                   <span className={cn("inline-flex", badge.className)}>
                     <badge.Icon aria-hidden className="size-3.5 shrink-0" />
-                    <span className="sr-only">{badge.label}</span>
+                    <span className="sr-only">{m(badge.label)}</span>
                   </span>
                 ) : null}
               </div>
             ))}
             {preview.total > preview.rows.length ? (
               <div className="text-muted-foreground">
-                {preview.total - preview.rows.length} more
+                {gt("{count} more", { count: preview.total - preview.rows.length })}
               </div>
             ) : null}
           </div>
