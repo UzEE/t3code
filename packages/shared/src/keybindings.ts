@@ -175,8 +175,8 @@ export const DEFAULT_KEYBINDINGS: ReadonlyArray<KeybindingRule> = [
   { key: "mod+shift+3", command: "usage.period.month", when: "usagePageOpen" },
   { key: "mod+shift+4", command: "usage.period.quarter", when: "usagePageOpen" },
   { key: "mod+alt+r", command: PROJECT_RAIL_COMMANDS.toggle },
-  { key: "mod+alt+[", command: PROJECT_RAIL_COMMANDS.previous },
-  { key: "mod+alt+]", command: PROJECT_RAIL_COMMANDS.next },
+  { key: "mod+alt+[", command: PROJECT_RAIL_COMMANDS.previous, when: "!terminalFocus" },
+  { key: "mod+alt+]", command: PROJECT_RAIL_COMMANDS.next, when: "!terminalFocus" },
   { key: "mod+alt+0", command: PROJECT_RAIL_COMMANDS.showAll },
   ...PROJECT_RAIL_COMMANDS.jump.map((command, index) => ({
     key: `mod+alt+${index + 1}`,
