@@ -33,9 +33,9 @@ import {
   useSidebar,
 } from "../ui/sidebar";
 import { readPullRequestListPreferences } from "../pullRequest/pullRequestListPreferences";
-import { readIssueListPreferences } from "../issue/issueListPreferences";
 import { IssueGlyph } from "../issue/issuePresentation";
 import { isSidebarUtilityPage, useNavigateToMainApp } from "./mainAppLocation";
+import { useRailIssueListPreferences } from "./ProjectRail";
 import { SidebarThreadUndoNotice } from "./SidebarThreadUndoNotice";
 import { SidebarHostPressureWarning } from "./SidebarHostPressureWarning";
 import { SidebarProviderUpdatePill } from "./SidebarProviderUpdatePill";
@@ -235,6 +235,7 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
   });
   const pullRequestsSupported = usePullRequestsSupported();
   const issuesSupported = useIssuesSupported();
+  const readIssuesSearch = useRailIssueListPreferences();
   const closeMobileSidebar = () => {
     if (isMobile) {
       setOpenMobile(false);
@@ -249,7 +250,7 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
   };
   const handleIssuesClick = () => {
     closeMobileSidebar();
-    void navigate({ to: "/issues", search: readIssueListPreferences() });
+    void navigate({ to: "/issues", search: readIssuesSearch() });
   };
   const handleSettingsClick = () => {
     closeMobileSidebar();

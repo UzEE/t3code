@@ -1,5 +1,10 @@
 import { effectiveSnoozed } from "@t3tools/client-runtime/state/thread-settled";
-import { isListedThreadLineage, type ScopedProjectRef } from "@t3tools/contracts";
+import {
+  isListedThreadLineage,
+  type EnvironmentId,
+  type ProjectId,
+  type ScopedProjectRef,
+} from "@t3tools/contracts";
 import { PROJECT_RAIL_COMMANDS } from "@t3tools/shared/keybindings";
 
 import type { SidebarProjectSnapshot } from "../../sidebarProjectGrouping";
@@ -19,6 +24,28 @@ export const PROJECT_RAIL_WIDTH = 56;
  * never take this form.
  */
 export const NO_PROJECT_SCOPE_KEY = "t3:no-project";
+
+/**
+ * The Issues page stores the projects it hides, so the rail's selection becomes
+ * every other project. No selected project that still exists means all projects.
+ */
+export function railHiddenIssueProjects(
+  groups: ReadonlyArray<{
+    readonly key: string;
+    readonly archived: boolean;
+    readonly memberProjectRefs: ReadonlyArray<ScopedProjectRef>;
+  }>,
+  scopeKeys: readonly string[],
+): Array<readonly [EnvironmentId, ProjectId]> | undefined {
+  const isSelected = (group: (typeof groups)[number]) =>
+    !group.archived && scopeKeys.includes(group.key);
+  if (!groups.some(isSelected)) return undefined;
+  return groups
+    .filter((group) => !isSelected(group))
+    .flatMap((group) =>
+      group.memberProjectRefs.map((ref) => [ref.environmentId, ref.projectId] as const),
+    );
+}
 
 /**
  * Where a new thread opens while the filter holds projects: the first of them,

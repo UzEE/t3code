@@ -11,6 +11,7 @@ import {
   NO_PROJECT_SCOPE_KEY,
   orderProjectRailEntries,
   pickRailIconTint,
+  railHiddenIssueProjects,
   resolveProjectRailShortcut,
   resolveRailNewThreadProjectRef,
   selectProjectRailPreviewThreads,
@@ -225,6 +226,28 @@ describe("resolveRailNewThreadProjectRef", () => {
     expect(
       resolveRailNewThreadProjectRef({ scopedGroups: [pageship], activeProjectRef: remote }),
     ).toBe(null);
+  });
+});
+
+describe("railHiddenIssueProjects", () => {
+  const refs = (...ids: string[]) =>
+    ids.map((id) => ({ environmentId, projectId: ProjectId.make(id) }));
+  const groups = [
+    { key: "alpha", archived: false, memberProjectRefs: refs("alpha-1", "alpha-2") },
+    { key: "beta", archived: false, memberProjectRefs: refs("beta-1") },
+    { key: "old", archived: true, memberProjectRefs: refs("old-1") },
+  ];
+
+  it("hides every project outside the rail's selection", () => {
+    expect(railHiddenIssueProjects(groups, ["alpha"])).toEqual([
+      [environmentId, "beta-1"],
+      [environmentId, "old-1"],
+    ]);
+  });
+
+  it("shows all projects when nothing live is selected", () => {
+    expect(railHiddenIssueProjects(groups, [])).toBeUndefined();
+    expect(railHiddenIssueProjects(groups, ["gone", "old"])).toBeUndefined();
   });
 });
 

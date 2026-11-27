@@ -14,6 +14,10 @@ import { useGT } from "gt-react";
 import { LayersIcon, MessageSquareDashedIcon, PlusIcon } from "lucide-react";
 import { useAtomValue } from "@effect/atom-react";
 import type { KeybindingCommand, ScopedThreadRef } from "@t3tools/contracts";
+import {
+  buildProjectGroups,
+  selectProjectGroupingSettings,
+} from "@t3tools/client-runtime/state/project-grouping";
 import { isScratchProject } from "@t3tools/client-runtime/state/projects";
 import {
   matchesKeybindingShortcutModifiers,
@@ -54,12 +58,14 @@ import type {
 } from "../../sidebarProjectGrouping";
 import type { SidebarThreadSummary } from "../../types";
 import { useShortcutModifierState } from "../../shortcutModifierState";
-import { useServerConfigs } from "../../state/entities";
+import { usePrimaryEnvironmentId } from "../../state/environments";
+import { useProjects, useServerConfigs } from "../../state/entities";
 import { primaryServerKeybindingsAtom } from "../../state/server";
 import { useUiStateStore } from "../../uiStateStore";
 import { ProjectFavicon, type ProjectFaviconProject } from "../ProjectFavicon";
 import { projectFaviconUrlAtom } from "../../state/assets";
 import { ThreadHoverCardPopup } from "../ThreadHoverCard";
+import { readIssueListPreferences, type IssueListPreferences } from "../issue/issueListPreferences";
 import { ProjectRailCardContext, ProjectRailHoverCard } from "./ProjectRailHoverCard";
 import {
   resolveThreadLastVisitedAt,
@@ -76,6 +82,7 @@ import {
   NO_PROJECT_SCOPE_KEY,
   orderProjectRailEntries,
   pickRailIconTint,
+  railHiddenIssueProjects,
   PROJECT_RAIL_WIDTH,
   projectRailEntryOrderKeys,
   resolveProjectRailShortcut,
@@ -508,6 +515,30 @@ export function useProjectRailVisible(): boolean {
   const enabled = useClientSettings((settings) => settings.sidebarProjectRailEnabled);
   const boringSidebarEnabled = useClientSettings((settings) => settings.boringSidebarEnabled);
   return enabled && !boringSidebarEnabled;
+}
+
+/**
+ * The Issues page's opening filter: the rail's projects while the rail shows,
+ * otherwise the page's saved filter.
+ */
+export function useRailIssueListPreferences(): () => IssueListPreferences {
+  const railVisible = useProjectRailVisible();
+  const projects = useProjects();
+  const settings = useClientSettings(selectProjectGroupingSettings);
+  const primaryEnvironmentId = usePrimaryEnvironmentId();
+  return () => {
+    const saved = readIssueListPreferences();
+    if (!railVisible) return saved;
+    // Built like the sidebar's groups, so the keys match the rail's selection.
+    const groups = buildProjectGroups({
+      projects,
+      settings,
+      preferredEnvironmentId: primaryEnvironmentId,
+      groupScratchProjects: true,
+    });
+    const scopeKeys = useUiStateStore.getState().sidebarProjectScopeKeys;
+    return { ...saved, hideProjects: railHiddenIssueProjects(groups, scopeKeys) };
+  };
 }
 
 function useScratchScopeKeys(projectGroups: readonly SidebarProjectSnapshot[]): string[] {
