@@ -66,6 +66,7 @@ import {
   THREAD_JUMP_HINT_SHOW_DELAY_MS,
   threadShortcutContext,
 } from "../Sidebar.logic";
+import { useSidebar } from "../ui/sidebar";
 import { Tooltip, TooltipPopup, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { scopedThreadKey, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import {
@@ -642,7 +643,11 @@ export function ProjectRailColumn(props: {
   });
   const showAll = useStableCallback(() => onSelectedScopeKeysChange([]));
   const selectAddedEntry = useStableCallback((entryKey: string) => selectEntry(entryKey, false));
-  const openAddProject = useStableCallback(() => openCommandPalette({ open: "add-project" }));
+  const { isMobile, setOpenMobile } = useSidebar();
+  const openAddProject = useStableCallback(() => {
+    if (isMobile) setOpenMobile(false);
+    openCommandPalette({ open: "add-project" });
+  });
   const openProjectSettings = useStableCallback(
     (event: MouseEvent<HTMLButtonElement>, project: SidebarProjectSnapshot) => {
       event.preventDefault();
